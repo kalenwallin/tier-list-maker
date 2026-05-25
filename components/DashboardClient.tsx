@@ -1,15 +1,19 @@
 "use client";
 
 import { useTierLists } from "@/lib/use-tier-lists";
-import { FilePlus2, Loader2, Trash2 } from "lucide-react";
+import { Download, FilePlus2, Loader2, Trash2, Upload } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { ChangeEvent, useRef, useState } from "react";
 
 export function DashboardClient() {
-  const { lists, createList, removeList } = useTierLists();
+  const { lists, createList, removeList, exportData, importData } =
+    useTierLists();
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
 
   async function create() {
     setIsCreating(true);
@@ -26,6 +30,41 @@ export function DashboardClient() {
     await removeList(id);
   }
 
+  async function exportBackup() {
+    const backup = await exportData();
+    const blob = new Blob([JSON.stringify(backup, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `tier-list-maker-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setMessage(`Exported ${backup.lists.length} tier list${backup.lists.length === 1 ? "" : "s"}.`);
+  }
+
+  async function importBackup(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setIsImporting(true);
+    setMessage(null);
+    try {
+      const importedCount = await importData(await file.text());
+      setMessage(
+        `Imported ${importedCount} tier list${importedCount === 1 ? "" : "s"}.`,
+      );
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Could not import that file.",
+      );
+    } finally {
+      setIsImporting(false);
+    }
+  }
+
   if (lists === undefined) {
     return (
       <div className="panel panel-pad">
@@ -39,12 +78,34 @@ export function DashboardClient() {
       <section className="toolbar">
         <div>
           <h1 style={{ margin: 0 }}>Your tier lists</h1>
-          <p className="muted">Create, edit, and export boards stored in this browser.</p>
+          <p className="muted">Create, edit, back up, and restore boards stored in this browser.</p>
         </div>
-        <button className="button primary" onClick={create} disabled={isCreating}>
-          <FilePlus2 size={16} /> {isCreating ? "Creating" : "New list"}
-        </button>
+        <div className="nav-actions">
+          <button className="button primary" onClick={create} disabled={isCreating}>
+            <FilePlus2 size={16} /> {isCreating ? "Creating" : "New list"}
+          </button>
+          <button className="button" onClick={() => void exportBackup()}>
+            <Download size={16} /> Export data
+          </button>
+          <button
+            className="button"
+            disabled={isImporting}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {isImporting ? <Loader2 size={16} /> : <Upload size={16} />}
+            {isImporting ? "Importing" : "Import data"}
+          </button>
+          <input
+            ref={fileInputRef}
+            className="visually-hidden"
+            type="file"
+            accept="application/json,.json"
+            onChange={(event) => void importBackup(event)}
+          />
+        </div>
       </section>
+
+      {message ? <p className="backup-message">{message}</p> : null}
 
       {lists.length === 0 ? (
         <section className="panel panel-pad">

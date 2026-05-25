@@ -1,7 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { createBlankTierList, db, StoredTierList } from "./db";
+import {
+  createBlankTierList,
+  db,
+  exportLocalData,
+  importLocalData,
+  StoredTierList,
+} from "./db";
 
 export function useTierLists() {
   const [lists, setLists] = useState<StoredTierList[] | undefined>();
@@ -29,7 +35,17 @@ export function useTierLists() {
     await refresh();
   }
 
-  return { lists, createList, removeList, refresh };
+  async function exportData() {
+    return await exportLocalData();
+  }
+
+  async function importData(contents: string) {
+    const count = await importLocalData(contents);
+    await refresh();
+    return count;
+  }
+
+  return { lists, createList, removeList, exportData, importData, refresh };
 }
 
 export function useTierList(id: string) {

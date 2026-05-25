@@ -141,6 +141,22 @@ button {
   padding: 0;
 }
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.backup-message {
+  margin: -8px 0 18px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
 .hero-grid {
   display: grid;
   grid-template-columns: minmax(0, 0.95fr) minmax(360px, 1.35fr);
