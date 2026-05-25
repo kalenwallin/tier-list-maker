@@ -81,7 +81,9 @@ export function TierListPreview({
             </div>
           ))}
         </div>
-        {draggable || unranked.length > 0 ? (
+      </div>
+      {draggable || unranked.length > 0 ? (
+        <div className="panel-pad item-tray-pad">
           <div
             className="item-tray"
             data-export-exclude="true"
@@ -105,8 +107,8 @@ export function TierListPreview({
               />
             ))}
           </div>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
     </section>
   );
 }
