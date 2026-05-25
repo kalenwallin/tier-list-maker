@@ -177,6 +177,10 @@ button {
   outline: 0 !important;
 }
 
+.tier-export-card.is-exporting .item-tray {
+  display: none !important;
+}
+
 .panel-pad {
   padding: 20px;
 }
