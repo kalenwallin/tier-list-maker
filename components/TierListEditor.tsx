@@ -70,23 +70,17 @@ export function TierListEditor({ id }: { id: string }) {
 
   async function exportImage() {
     if (!exportRef.current) return;
-    exportRef.current.classList.add("is-exporting");
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-    try {
-      const dataUrl = await toPng(exportRef.current, {
-        pixelRatio: 2,
-        backgroundColor: "#ffffff",
-        cacheBust: true,
-        filter: (node) =>
-          !(node instanceof HTMLElement && node.dataset.exportExclude === "true"),
-      });
-      const link = document.createElement("a");
-      link.href = dataUrl;
-      link.download = `${title || "tier-list"}.png`;
-      link.click();
-    } finally {
-      exportRef.current.classList.remove("is-exporting");
-    }
+    const dataUrl = await toPng(exportRef.current, {
+      pixelRatio: 2,
+      backgroundColor: "#ffffff",
+      cacheBust: true,
+      filter: (node) =>
+        !(node instanceof HTMLElement && node.dataset.exportExclude === "true"),
+    });
+    const link = document.createElement("a");
+    link.href = dataUrl;
+    link.download = `${title || "tier-list"}.png`;
+    link.click();
   }
 
   function addItem() {
