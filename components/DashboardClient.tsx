@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { ChangeEvent, useRef, useState } from "react";
 
 export function DashboardClient() {
-  const { lists, createList, removeList, exportData, importData } =
+  const { lists, ownerEmail, createList, removeList, exportData, importData } =
     useTierLists();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -73,12 +73,31 @@ export function DashboardClient() {
     );
   }
 
+  if (!ownerEmail) {
+    return (
+      <section className="panel panel-pad">
+        <h1>Sign in to see your tier lists</h1>
+        <p className="muted">
+          Your tier lists are private to your account.
+        </p>
+        <div className="nav-actions" style={{ justifyContent: "flex-start" }}>
+          <a className="button" href="/sign-in">
+            Sign in
+          </a>
+          <a className="button primary" href="/sign-up">
+            Sign up
+          </a>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <>
       <section className="toolbar">
         <div>
           <h1 style={{ margin: 0 }}>Your tier lists</h1>
-          <p className="muted">Create, edit, back up, and restore boards stored in this browser.</p>
+          <p className="muted">Create, edit, back up, and restore your boards.</p>
         </div>
         <div className="nav-actions">
           <button className="button primary" onClick={create} disabled={isCreating}>
@@ -110,7 +129,7 @@ export function DashboardClient() {
       {lists.length === 0 ? (
         <section className="panel panel-pad">
           <h2>No lists yet</h2>
-          <p className="muted">Start with a blank board and save it locally.</p>
+          <p className="muted">Start with a blank board and access it from any device.</p>
           <button className="button primary" onClick={create}>
             <FilePlus2 size={16} /> Create your first list
           </button>
@@ -123,7 +142,7 @@ export function DashboardClient() {
                 <div>
                   <h2>{list.title}</h2>
                   <p className="muted">
-                    Local draft · {list.items.length} items
+                    Saved draft · {list.items.length} items
                   </p>
                 </div>
                 <div className="mini-bars">

@@ -2,6 +2,7 @@
 
 import { createId, Tier, TierItem } from "@/lib/tier-list";
 import { useTierList } from "@/lib/use-tier-lists";
+import { StoredTierList } from "@/lib/db";
 import { toPng } from "html-to-image";
 import { Check, Download, Loader2, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
@@ -13,6 +14,8 @@ export function TierListEditor({ id }: { id: string }) {
   const { list, saveList } = useTierList(id);
   const exportRef = useRef<HTMLDivElement>(null);
   const draggedItemId = useRef<string | null>(null);
+  const hydratedListId = useRef<string | null>(null);
+  const lastSavedSnapshot = useRef("");
   const skipAutosave = useRef(true);
 
   const [title, setTitle] = useState("");
@@ -32,10 +35,18 @@ export function TierListEditor({ id }: { id: string }) {
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!list) return;
-    // The stored document seeds an editable draft; later edits autosave.
+    if (hydratedListId.current === list.id) return;
+
+    // The stored document seeds an editable draft once; later edits autosave.
+    hydratedListId.current = list.id;
+    lastSavedSnapshot.current = createSnapshot({
+      title: list.title,
+      description: list.description ?? "",
+      tiers: list.tiers,
+      items: list.items,
+    });
     skipAutosave.current = true;
     setTitle(list.title);
     setDescription(list.description ?? "");
@@ -43,10 +54,12 @@ export function TierListEditor({ id }: { id: string }) {
     setItems(list.items);
     setSaveStatus("Saved");
   }, [list]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     if (!list) return;
+
+    const snapshot = createSnapshot({ title, description, tiers, items });
+    if (snapshot === lastSavedSnapshot.current) return;
 
     if (skipAutosave.current) {
       skipAutosave.current = false;
@@ -59,6 +72,7 @@ export function TierListEditor({ id }: { id: string }) {
       setSaveStatus("Saving");
       try {
         await saveList({ title, description, tiers, items });
+        lastSavedSnapshot.current = snapshot;
         setSaveStatus("Saved");
       } finally {
         setIsSaving(false);
@@ -70,13 +84,17 @@ export function TierListEditor({ id }: { id: string }) {
 
   async function exportImage() {
     if (!exportRef.current) return;
-    const dataUrl = await toPng(exportRef.current, {
-      pixelRatio: 2,
-      backgroundColor: "#ffffff",
-      cacheBust: true,
-      filter: (node) =>
-        !(node instanceof HTMLElement && node.dataset.exportExclude === "true"),
-    });
+    const dataUrl = await withSuppressedFetchWarnings(() =>
+      toPng(exportRef.current!, {
+        pixelRatio: 2,
+        backgroundColor: "#ffffff",
+        cacheBust: true,
+        imagePlaceholder: TRANSPARENT_IMAGE_PLACEHOLDER,
+        onImageErrorHandler: () => undefined,
+        filter: (node) =>
+          !(node instanceof HTMLElement && node.dataset.exportExclude === "true"),
+      }),
+    );
     const link = document.createElement("a");
     link.href = dataUrl;
     link.download = `${title || "tier-list"}.png`;
@@ -286,10 +304,47 @@ export function TierListEditor({ id }: { id: string }) {
             title={title}
           />
           <p className="muted">
-            Drag items into rows; every edit is saved locally.
+            Drag items into rows; every edit is saved automatically.
           </p>
         </div>
       </div>
     </>
   );
+}
+
+const TRANSPARENT_IMAGE_PLACEHOLDER =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+
+function createSnapshot(
+  value: Pick<StoredTierList, "title" | "description" | "tiers" | "items">,
+) {
+  return JSON.stringify({
+    title: value.title.trim() || "Untitled tier list",
+    description: value.description.trim(),
+    tiers: value.tiers,
+    items: value.items,
+  });
+}
+
+async function withSuppressedFetchWarnings<T>(callback: () => Promise<T>) {
+  const originalWarn = console.warn;
+
+  console.warn = (...args) => {
+    const [message] = args;
+    if (
+      typeof message === "string" &&
+      (message.startsWith("Failed to fetch resource:") ||
+        message === "Failed to fetch")
+    ) {
+      return;
+    }
+
+    originalWarn(...args);
+  };
+
+  try {
+    return await callback();
+  } finally {
+    console.warn = originalWarn;
+  }
 }

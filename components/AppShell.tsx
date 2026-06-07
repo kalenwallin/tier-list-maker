@@ -1,9 +1,9 @@
 import { Trophy } from "lucide-react";
 import Link from "next/link";
 import { ReactNode } from "react";
-import { NavAuth } from "./NavAuth";
+import { AuthNav } from "./AuthNav";
 
-export function Shell({ children }: { children: ReactNode }) {
+export function AppShell({ children }: { children: ReactNode }) {
   return (
     <main className="page-shell">
       <header className="topbar">
@@ -17,7 +17,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <Link className="button" href="/dashboard">
             Dashboard
           </Link>
-          <NavAuth />
+          <AuthNav />
           <span className="topbar-action-slot" id="topbar-action-slot" />
         </nav>
       </header>

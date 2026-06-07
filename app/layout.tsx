@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { ConvexClientProvider } from "@/components/ConvexClientProvider";
+import { AuthKitProvider } from "@workos-inc/authkit-nextjs/components";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Tier List Maker",
-  description: "Create local tier lists and export them as images.",
+  description: "Create tier lists and export them as images.",
 };
 
 export default function RootLayout({
@@ -13,7 +15,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <AuthKitProvider>
+          <ConvexClientProvider>{children}</ConvexClientProvider>
+        </AuthKitProvider>
+      </body>
     </html>
   );
 }

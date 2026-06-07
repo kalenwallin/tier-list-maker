@@ -1,6 +1,6 @@
 "use client";
 
-import { Database, Download, FilePlus2 } from "lucide-react";
+import { Cloud, Download, FilePlus2 } from "lucide-react";
 import Link from "next/link";
 import { DEFAULT_TIERS, STARTER_ITEMS } from "@/lib/tier-list";
 import { TierListPreview } from "./TierListPreview";
@@ -18,7 +18,7 @@ export function HomeClient() {
             <FilePlus2 size={16} /> Open dashboard
           </Link>
           <span className="button ghost">
-            <Database size={16} /> Local storage
+            <Cloud size={16} /> Cloud save
           </span>
           <span className="button ghost">
             <Download size={16} /> PNG export

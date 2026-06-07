@@ -1,10 +1,10 @@
 import { HomeClient } from "@/components/HomeClient";
-import { Shell } from "@/components/Shell";
+import { AppShell } from "@/components/AppShell";
 
 export default function Home() {
   return (
-    <Shell>
+    <AppShell>
       <HomeClient />
-    </Shell>
+    </AppShell>
   );
 }

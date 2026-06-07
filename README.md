@@ -1,20 +1,22 @@
 # Tier List Maker
 
-A local-first Next.js App Router app for creating tier lists and exporting them
-as PNG images. Lists are stored in the browser with IndexedDB via Dexie.
+A Next.js App Router app for creating tier lists and exporting them as PNG
+images. Lists are synced between devices with Convex.
 
 ## Stack
 
 - Next.js 16 App Router
-- Dexie + IndexedDB for local browser storage
+- Convex for synced tier list storage
 - `html-to-image` for PNG exports
 
 ## Run Locally
 
 ```bash
 pnpm install
+pnpm convex dev
 pnpm dev
 ```
 
-Open `http://localhost:3000`. Data stays on the same browser profile and is not
-synced to a backend.
+Open `http://localhost:3000`. `pnpm convex dev` writes
+`NEXT_PUBLIC_CONVEX_URL` to `.env.local` after you choose or create a Convex
+deployment.

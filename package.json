@@ -3,13 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "convex dev --start \"next dev\"",
+    "build": "npx convex deploy --cmd 'next build'",
     "start": "next start",
     "lint": "eslint ."
   },
   "dependencies": {
-    "dexie": "^4.4.2",
+    "@workos-inc/authkit-nextjs": "^4.1.1",
+    "convex": "^1.40.0",
     "html-to-image": "latest",
     "lucide-react": "latest",
     "next": "latest",

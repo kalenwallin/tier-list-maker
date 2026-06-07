@@ -1,4 +1,4 @@
-import { Shell } from "@/components/Shell";
+import { AppShell } from "@/components/AppShell";
 import { TierListEditor } from "@/components/TierListEditor";
 
 export default async function ListEditorPage({
@@ -8,8 +8,8 @@ export default async function ListEditorPage({
 }) {
   const { id } = await params;
   return (
-    <Shell>
+    <AppShell>
       <TierListEditor id={id} />
-    </Shell>
+    </AppShell>
   );
 }

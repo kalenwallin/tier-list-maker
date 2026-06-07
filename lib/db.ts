@@ -1,10 +1,8 @@
-"use client";
-
-import Dexie, { Table } from "dexie";
 import { DEFAULT_TIERS, STARTER_ITEMS, Tier, TierItem } from "./tier-list";
 
 export type StoredTierList = {
   id: string;
+  ownerEmail?: string;
   title: string;
   description: string;
   tiers: Tier[];
@@ -20,23 +18,11 @@ export type LocalDataBackup = {
   lists: StoredTierList[];
 };
 
-class TierListDatabase extends Dexie {
-  tierLists!: Table<StoredTierList, string>;
+export type NewTierList = Omit<StoredTierList, "id">;
 
-  constructor() {
-    super("tier-list-maker");
-    this.version(1).stores({
-      tierLists: "id, updatedAt, createdAt",
-    });
-  }
-}
-
-export const db = new TierListDatabase();
-
-export function createBlankTierList(title = "New tier list"): StoredTierList {
+export function createBlankTierList(title = "New tier list"): NewTierList {
   const now = Date.now();
   return {
-    id: crypto.randomUUID(),
     title,
     description: "",
     tiers: DEFAULT_TIERS.map((tier) => ({ ...tier })),
@@ -46,20 +32,18 @@ export function createBlankTierList(title = "New tier list"): StoredTierList {
   };
 }
 
-export async function exportLocalData(): Promise<LocalDataBackup> {
+export function createBackup(lists: StoredTierList[]): LocalDataBackup {
   return {
     app: "tier-list-maker",
     version: 1,
     exportedAt: new Date().toISOString(),
-    lists: await db.tierLists.orderBy("updatedAt").reverse().toArray(),
+    lists,
   };
 }
 
-export async function importLocalData(contents: string) {
+export function parseBackupContents(contents: string) {
   const parsed = JSON.parse(contents) as unknown;
-  const lists = parseBackup(parsed);
-  await db.tierLists.bulkPut(lists);
-  return lists.length;
+  return parseBackup(parsed);
 }
 
 function parseBackup(value: unknown): StoredTierList[] {
@@ -97,6 +81,8 @@ function parseTierList(value: unknown): StoredTierList {
 
   return {
     id: value.id,
+    ownerEmail:
+      typeof value.ownerEmail === "string" ? value.ownerEmail : undefined,
     title: value.title,
     description: value.description,
     createdAt: value.createdAt,
