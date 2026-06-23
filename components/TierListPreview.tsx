@@ -8,6 +8,7 @@ type Props = {
   description?: string;
   tiers: Tier[];
   items: TierItem[];
+  className?: string;
   draggable?: boolean;
   onDropItem?: (tierId?: string) => void;
   onDragStart?: (itemId: string) => void;
@@ -19,6 +20,7 @@ export function TierListPreview({
   description,
   tiers,
   items,
+  className,
   draggable = false,
   onDropItem,
   onDragStart,
@@ -36,7 +38,10 @@ export function TierListPreview({
   }
 
   return (
-    <section className="panel tier-export-card" style={{ background: "#fff" }}>
+    <section
+      className={["panel tier-export-card", className].filter(Boolean).join(" ")}
+      style={{ background: "#fff" }}
+    >
       <div ref={exportRef} className="panel-pad tier-export-inner">
         {title ? (
           <div className="toolbar">

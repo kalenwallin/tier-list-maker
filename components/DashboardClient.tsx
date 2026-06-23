@@ -7,8 +7,16 @@ import { useRouter } from "next/navigation";
 import { ChangeEvent, useRef, useState } from "react";
 
 export function DashboardClient() {
-  const { lists, ownerEmail, createList, removeList, exportData, importData } =
-    useTierLists();
+  const {
+    lists,
+    ownerEmail,
+    syncMode,
+    isMigratingLocalData,
+    createList,
+    removeList,
+    exportData,
+    importData,
+  } = useTierLists();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -73,31 +81,16 @@ export function DashboardClient() {
     );
   }
 
-  if (!ownerEmail) {
-    return (
-      <section className="panel panel-pad">
-        <h1>Sign in to see your tier lists</h1>
-        <p className="muted">
-          Your tier lists are private to your account.
-        </p>
-        <div className="nav-actions" style={{ justifyContent: "flex-start" }}>
-          <a className="button" href="/sign-in">
-            Sign in
-          </a>
-          <a className="button primary" href="/sign-up">
-            Sign up
-          </a>
-        </div>
-      </section>
-    );
-  }
-
   return (
     <>
       <section className="toolbar">
         <div>
           <h1 style={{ margin: 0 }}>Your tier lists</h1>
-          <p className="muted">Create, edit, back up, and restore your boards.</p>
+          <p className="muted">
+            {syncMode === "cloud"
+              ? `Cloud sync is on${ownerEmail ? ` for ${ownerEmail}` : ""}.`
+              : "Local mode: lists are saved in this browser."}
+          </p>
         </div>
         <div className="nav-actions">
           <button className="button primary" onClick={create} disabled={isCreating}>
@@ -124,12 +117,19 @@ export function DashboardClient() {
         </div>
       </section>
 
+      {isMigratingLocalData ? (
+        <p className="backup-message">Moving local tier lists into cloud sync.</p>
+      ) : null}
       {message ? <p className="backup-message">{message}</p> : null}
 
       {lists.length === 0 ? (
         <section className="panel panel-pad">
           <h2>No lists yet</h2>
-          <p className="muted">Start with a blank board and access it from any device.</p>
+          <p className="muted">
+            {syncMode === "cloud"
+              ? "Start with a blank board and access it from any device."
+              : "Start with a blank board now; sign in later to move it into cloud sync."}
+          </p>
           <button className="button primary" onClick={create}>
             <FilePlus2 size={16} /> Create your first list
           </button>

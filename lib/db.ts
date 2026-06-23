@@ -3,6 +3,8 @@ import { DEFAULT_TIERS, STARTER_ITEMS, Tier, TierItem } from "./tier-list";
 export type StoredTierList = {
   id: string;
   ownerEmail?: string;
+  localId?: string;
+  shareId?: string;
   title: string;
   description: string;
   tiers: Tier[];
@@ -83,6 +85,8 @@ function parseTierList(value: unknown): StoredTierList {
     id: value.id,
     ownerEmail:
       typeof value.ownerEmail === "string" ? value.ownerEmail : undefined,
+    localId: typeof value.localId === "string" ? value.localId : undefined,
+    shareId: typeof value.shareId === "string" ? value.shareId : undefined,
     title: value.title,
     description: value.description,
     createdAt: value.createdAt,

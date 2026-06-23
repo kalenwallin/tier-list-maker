@@ -1,6 +1,6 @@
 "use client";
 
-import { Cloud, Download, FilePlus2 } from "lucide-react";
+import { Cloud, Download, FilePlus2, HardDrive } from "lucide-react";
 import Link from "next/link";
 import { DEFAULT_TIERS, STARTER_ITEMS } from "@/lib/tier-list";
 import { TierListPreview } from "./TierListPreview";
@@ -11,12 +11,16 @@ export function HomeClient() {
       <div className="hero-copy">
         <h1>Build a tier list.</h1>
         <p>
-          Rank anything and export as an image to share with friends.
+          Rank anything locally, then sign in when you want cloud sync and
+          shareable view-only links.
         </p>
         <div className="nav-actions" style={{ justifyContent: "flex-start" }}>
           <Link className="button primary" href="/dashboard">
             <FilePlus2 size={16} /> Open dashboard
           </Link>
+          <span className="button ghost">
+            <HardDrive size={16} /> Local save
+          </span>
           <span className="button ghost">
             <Cloud size={16} /> Cloud save
           </span>
@@ -26,6 +30,7 @@ export function HomeClient() {
         </div>
       </div>
       <TierListPreview
+        className="hero-preview"
         items={STARTER_ITEMS.map((item, index) => ({
           ...item,
           tierId: index === 0 ? "s" : index === 1 ? "b" : undefined,

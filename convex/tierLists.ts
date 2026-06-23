@@ -18,6 +18,8 @@ const tierItem = v.object({
 
 const tierListFields = {
   ownerEmail: v.optional(v.string()),
+  localId: v.optional(v.string()),
+  shareId: v.optional(v.string()),
   title: v.string(),
   description: v.string(),
   tiers: v.array(tier),
@@ -51,6 +53,30 @@ export const get = query({
   },
 });
 
+export const getByLocalId = query({
+  args: { localId: v.string(), ownerEmail: v.string() },
+  handler: async (ctx, { localId, ownerEmail }) => {
+    return await ctx.db
+      .query("tierLists")
+      .withIndex("by_owner_localId", (q) =>
+        q.eq("ownerEmail", normalizeEmail(ownerEmail)).eq("localId", localId),
+      )
+      .first();
+  },
+});
+
+export const getShared = query({
+  args: { shareId: v.string() },
+  handler: async (ctx, { shareId }) => {
+    if (!shareId.trim()) return null;
+
+    return await ctx.db
+      .query("tierLists")
+      .withIndex("by_shareId", (q) => q.eq("shareId", shareId.trim()))
+      .first();
+  },
+});
+
 export const create = mutation({
   args: {
     ownerEmail: v.string(),
@@ -66,6 +92,21 @@ export const create = mutation({
       ...list,
       ownerEmail: normalizeEmail(list.ownerEmail),
     });
+  },
+});
+
+export const createShareLink = mutation({
+  args: { id: v.id("tierLists"), ownerEmail: v.string() },
+  handler: async (ctx, { id, ownerEmail }) => {
+    const list = await assertOwner(ctx, id, ownerEmail);
+    if (list.shareId) return list.shareId;
+
+    const shareId = crypto.randomUUID();
+    await ctx.db.patch(id, {
+      shareId,
+      updatedAt: Date.now(),
+    });
+    return shareId;
   },
 });
 
@@ -110,6 +151,58 @@ export const importMany = mutation({
   },
 });
 
+export const syncLocalLists = mutation({
+  args: {
+    ownerEmail: v.string(),
+    lists: v.array(
+      v.object({
+        localId: v.string(),
+        title: v.string(),
+        description: v.string(),
+        tiers: v.array(tier),
+        items: v.array(tierItem),
+        createdAt: v.number(),
+        updatedAt: v.number(),
+      }),
+    ),
+  },
+  handler: async (ctx, { ownerEmail, lists }) => {
+    const normalizedOwnerEmail = normalizeEmail(ownerEmail);
+    let syncedCount = 0;
+
+    for (const list of lists) {
+      const existing = await ctx.db
+        .query("tierLists")
+        .withIndex("by_owner_localId", (q) =>
+          q
+            .eq("ownerEmail", normalizedOwnerEmail)
+            .eq("localId", list.localId),
+        )
+        .first();
+
+      const updates = {
+        localId: list.localId,
+        ownerEmail: normalizedOwnerEmail,
+        title: list.title.trim() || "Untitled tier list",
+        description: list.description.trim(),
+        tiers: list.tiers,
+        items: list.items,
+        createdAt: list.createdAt,
+        updatedAt: Date.now(),
+      };
+
+      if (existing) {
+        await ctx.db.patch(existing._id, updates);
+      } else {
+        await ctx.db.insert("tierLists", updates);
+      }
+      syncedCount += 1;
+    }
+
+    return syncedCount;
+  },
+});
+
 export const claimLegacyLists = mutation({
   args: { ownerEmail: v.string() },
   handler: async (ctx, { ownerEmail }) => {
@@ -144,4 +237,5 @@ async function assertOwner(
   if (!list || list.ownerEmail !== normalizeEmail(ownerEmail)) {
     throw new Error("Tier list not found.");
   }
+  return list;
 }

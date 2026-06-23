@@ -17,6 +17,8 @@ const tierItem = v.object({
 export default defineSchema({
   tierLists: defineTable({
     ownerEmail: v.optional(v.string()),
+    localId: v.optional(v.string()),
+    shareId: v.optional(v.string()),
     title: v.string(),
     description: v.string(),
     tiers: v.array(tier),
@@ -25,5 +27,7 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_owner_updatedAt", ["ownerEmail", "updatedAt"])
+    .index("by_owner_localId", ["ownerEmail", "localId"])
+    .index("by_shareId", ["shareId"])
     .index("by_updatedAt", ["updatedAt"]),
 });

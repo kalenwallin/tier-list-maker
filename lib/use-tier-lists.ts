@@ -4,7 +4,7 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import { useMutation, useQuery } from "convex/react";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   createBackup,
   createBlankTierList,
@@ -12,10 +12,23 @@ import {
   parseBackupContents,
   StoredTierList,
 } from "./db";
+import {
+  clearLocalTierLists,
+  createLocalTierList,
+  importLocalTierLists,
+  isLocalTierListId,
+  readLocalTierLists,
+  removeLocalTierList,
+  updateLocalTierList,
+} from "./local-tier-lists";
+
+export type SyncMode = "local" | "cloud";
 
 type UseTierListsResult = {
   lists: StoredTierList[] | undefined;
   ownerEmail: string | undefined;
+  syncMode: SyncMode;
+  isMigratingLocalData: boolean;
   createList: (title?: string) => Promise<string>;
   removeList: (id: string) => Promise<void>;
   exportData: () => Promise<LocalDataBackup>;
@@ -24,13 +37,19 @@ type UseTierListsResult = {
 
 type UseTierListResult = {
   list: StoredTierList | null | undefined;
+  ownerEmail: string | undefined;
+  syncMode: SyncMode;
+  shareUrl: string | null;
   saveList: (
     updates: Pick<StoredTierList, "title" | "description" | "tiers" | "items">,
   ) => Promise<void>;
+  createShareLink: () => Promise<string>;
 };
 
 export function useTierLists(): UseTierListsResult {
   const { ownerEmail, authLoading } = useAuthState();
+  const { localLists, localLoading, isMigratingLocalData } =
+    useLocalListsMigration(ownerEmail);
   const remoteLists = useQuery(
     api.tierLists.list,
     ownerEmail ? { ownerEmail } : "skip",
@@ -41,19 +60,26 @@ export function useTierLists(): UseTierListsResult {
   const removeTierList = useMutation(api.tierLists.remove);
   const importTierLists = useMutation(api.tierLists.importMany);
   const lists = useMemo(() => {
-    if (authLoading) return undefined;
-    if (!ownerEmail) return [];
+    if (authLoading || localLoading) return undefined;
+    if (!ownerEmail) return localLists;
     return remoteLists?.map(fromConvexTierList);
-  }, [authLoading, ownerEmail, remoteLists]);
+  }, [authLoading, localLists, localLoading, ownerEmail, remoteLists]);
 
   async function createList(title?: string) {
-    if (!ownerEmail) throw new Error("Sign in to create tier lists.");
+    if (!ownerEmail) {
+      return createLocalTierList(title).id;
+    }
+
     const list = createBlankTierList(title);
     return await createTierList({ ...list, ownerEmail });
   }
 
   async function removeList(id: string) {
-    if (!ownerEmail) throw new Error("Sign in to delete tier lists.");
+    if (!ownerEmail) {
+      removeLocalTierList(id);
+      return;
+    }
+
     await removeTierList({ id: id as Id<"tierLists">, ownerEmail });
   }
 
@@ -62,38 +88,85 @@ export function useTierLists(): UseTierListsResult {
   }
 
   async function importData(contents: string) {
-    if (!ownerEmail) throw new Error("Sign in to import tier lists.");
+    if (!ownerEmail) {
+      return importLocalTierLists(contents);
+    }
+
     const parsedLists = parseBackupContents(contents);
     return await importTierLists({
       ownerEmail,
-      lists: parsedLists.map(({ id: _id, ownerEmail: _ownerEmail, ...list }) => list),
+      lists: parsedLists.map(
+        ({
+          id: _id,
+          ownerEmail: _ownerEmail,
+          localId: _localId,
+          shareId: _shareId,
+          ...list
+        }) => list,
+      ),
     });
   }
 
-  return { lists, ownerEmail, createList, removeList, exportData, importData };
+  return {
+    lists,
+    ownerEmail,
+    syncMode: ownerEmail ? "cloud" : "local",
+    isMigratingLocalData,
+    createList,
+    removeList,
+    exportData,
+    importData,
+  };
 }
 
 export function useTierList(id: string): UseTierListResult {
   const { ownerEmail, authLoading } = useAuthState();
-  const remoteList = useQuery(
+  const { localLists, localLoading, isMigratingLocalData } =
+    useLocalListsMigration(ownerEmail);
+  const shouldQueryByLocalId = ownerEmail && isLocalTierListId(id);
+  const remoteListById = useQuery(
     api.tierLists.get,
-    ownerEmail ? { id: id as Id<"tierLists">, ownerEmail } : "skip",
+    ownerEmail && !shouldQueryByLocalId
+      ? { id: id as Id<"tierLists">, ownerEmail }
+      : "skip",
+  ) as ConvexTierList | null | undefined;
+  const remoteListByLocalId = useQuery(
+    api.tierLists.getByLocalId,
+    shouldQueryByLocalId ? { localId: id, ownerEmail } : "skip",
   ) as ConvexTierList | null | undefined;
   const updateTierList = useMutation(api.tierLists.update);
+  const createRemoteShareLink = useMutation(api.tierLists.createShareLink);
+  const remoteList = shouldQueryByLocalId ? remoteListByLocalId : remoteListById;
   const list = useMemo(() => {
-    if (authLoading) return undefined;
-    if (!ownerEmail) return null;
+    if (authLoading || localLoading) return undefined;
+    if (!ownerEmail) {
+      return localLists.find((candidate) => candidate.id === id) ?? null;
+    }
+    if (isMigratingLocalData && shouldQueryByLocalId) return undefined;
     if (remoteList === undefined) return undefined;
     if (remoteList === null) return null;
     return fromConvexTierList(remoteList);
-  }, [authLoading, ownerEmail, remoteList]);
+  }, [
+    authLoading,
+    id,
+    isMigratingLocalData,
+    localLists,
+    localLoading,
+    ownerEmail,
+    remoteList,
+    shouldQueryByLocalId,
+  ]);
 
   const saveList = useCallback(async (
     updates: Pick<StoredTierList, "title" | "description" | "tiers" | "items">,
   ) => {
-    if (!ownerEmail) throw new Error("Sign in to save tier lists.");
+    if (!ownerEmail) {
+      updateLocalTierList(id, updates);
+      return;
+    }
+    const remoteId = remoteList?._id ?? id;
     await updateTierList({
-      id: id as Id<"tierLists">,
+      id: remoteId as Id<"tierLists">,
       ownerEmail,
       title: updates.title.trim() || "Untitled tier list",
       description: updates.description.trim(),
@@ -101,20 +174,48 @@ export function useTierList(id: string): UseTierListResult {
       items: updates.items,
       updatedAt: Date.now(),
     });
-  }, [id, ownerEmail, updateTierList]);
+  }, [id, ownerEmail, remoteList?._id, updateTierList]);
 
-  return { list, saveList };
+  const createShareLink = useCallback(async () => {
+    if (!ownerEmail || !remoteList) {
+      throw new Error("Sign in to cloud sync before sharing tier lists.");
+    }
+
+    const shareId =
+      remoteList.shareId ??
+      (await createRemoteShareLink({
+        id: remoteList._id,
+        ownerEmail,
+      }));
+    return `${window.location.origin}/share/${shareId}`;
+  }, [createRemoteShareLink, ownerEmail, remoteList]);
+
+  return {
+    list,
+    ownerEmail,
+    syncMode: ownerEmail ? "cloud" : "local",
+    shareUrl:
+      ownerEmail && remoteList?.shareId && typeof window !== "undefined"
+        ? `${window.location.origin}/share/${remoteList.shareId}`
+        : null,
+    saveList,
+    createShareLink,
+  };
 }
 
 type ConvexTierList = StoredTierList & {
   _id: Id<"tierLists">;
   _creationTime: number;
+  localId?: string;
+  shareId?: string;
 };
 
 function fromConvexTierList(list: ConvexTierList): StoredTierList {
   return {
     id: list._id,
     ownerEmail: list.ownerEmail,
+    localId: list.localId,
+    shareId: list.shareId,
     title: list.title,
     description: list.description,
     tiers: list.tiers,
@@ -130,4 +231,70 @@ function useAuthState() {
     authLoading: loading,
     ownerEmail: loading ? undefined : user?.email?.trim().toLowerCase(),
   };
+}
+
+function useLocalListsMigration(ownerEmail: string | undefined) {
+  const [localLists, setLocalLists] = useState<StoredTierList[]>([]);
+  const [localLoading, setLocalLoading] = useState(true);
+  const [isMigratingLocalData, setIsMigratingLocalData] = useState(false);
+  const syncLocalLists = useMutation(api.tierLists.syncLocalLists);
+
+  useEffect(() => {
+    function refreshLocalLists() {
+      setLocalLists(readLocalTierLists());
+      setLocalLoading(false);
+    }
+
+    refreshLocalLists();
+    window.addEventListener("storage", refreshLocalLists);
+    window.addEventListener("tier-list-maker:local-lists-changed", refreshLocalLists);
+
+    return () => {
+      window.removeEventListener("storage", refreshLocalLists);
+      window.removeEventListener(
+        "tier-list-maker:local-lists-changed",
+        refreshLocalLists,
+      );
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!ownerEmail || localLoading || localLists.length === 0) return;
+
+    let cancelled = false;
+    async function migrate() {
+      setIsMigratingLocalData(true);
+      try {
+        await syncLocalLists({
+          ownerEmail: ownerEmail!,
+          lists: localLists.map(
+            ({
+              id,
+              ownerEmail: _ownerEmail,
+              localId: _localId,
+              shareId: _shareId,
+              ...list
+            }) => ({
+              localId: id,
+              ...list,
+            }),
+          ),
+        });
+        if (!cancelled) {
+          clearLocalTierLists();
+          setLocalLists([]);
+        }
+      } finally {
+        if (!cancelled) setIsMigratingLocalData(false);
+      }
+    }
+
+    void migrate();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [localLists, localLoading, ownerEmail, syncLocalLists]);
+
+  return { localLists, localLoading, isMigratingLocalData };
 }

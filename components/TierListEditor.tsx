@@ -4,14 +4,14 @@ import { createId, Tier, TierItem } from "@/lib/tier-list";
 import { useTierList } from "@/lib/use-tier-lists";
 import { StoredTierList } from "@/lib/db";
 import { toPng } from "html-to-image";
-import { Check, Download, Loader2, Plus, Trash2 } from "lucide-react";
+import { Check, Copy, Download, Loader2, Plus, Share2, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
 import { TierListPreview } from "./TierListPreview";
 
 export function TierListEditor({ id }: { id: string }) {
-  const { list, saveList } = useTierList(id);
+  const { list, syncMode, shareUrl, saveList, createShareLink } = useTierList(id);
   const exportRef = useRef<HTMLDivElement>(null);
   const draggedItemId = useRef<string | null>(null);
   const hydratedListId = useRef<string | null>(null);
@@ -24,6 +24,7 @@ export function TierListEditor({ id }: { id: string }) {
   const [items, setItems] = useState<TierItem[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState("Saved");
+  const [shareStatus, setShareStatus] = useState("Share");
   const [newTier, setNewTier] = useState("");
   const [topbarActionSlot, setTopbarActionSlot] = useState<HTMLElement | null>(
     null,
@@ -52,8 +53,8 @@ export function TierListEditor({ id }: { id: string }) {
     setDescription(list.description ?? "");
     setTiers(list.tiers);
     setItems(list.items);
-    setSaveStatus("Saved");
-  }, [list]);
+    setSaveStatus(syncMode === "cloud" ? "Saved to cloud" : "Saved locally");
+  }, [list, syncMode]);
 
   useEffect(() => {
     if (!list) return;
@@ -73,14 +74,14 @@ export function TierListEditor({ id }: { id: string }) {
       try {
         await saveList({ title, description, tiers, items });
         lastSavedSnapshot.current = snapshot;
-        setSaveStatus("Saved");
+        setSaveStatus(syncMode === "cloud" ? "Saved to cloud" : "Saved locally");
       } finally {
         setIsSaving(false);
       }
     }, 350);
 
     return () => window.clearTimeout(timeoutId);
-  }, [description, items, list, saveList, tiers, title]);
+  }, [description, items, list, saveList, syncMode, tiers, title]);
 
   async function exportImage() {
     if (!exportRef.current) return;
@@ -99,6 +100,19 @@ export function TierListEditor({ id }: { id: string }) {
     link.href = dataUrl;
     link.download = `${title || "tier-list"}.png`;
     link.click();
+  }
+
+  async function shareList() {
+    setShareStatus("Creating link");
+    try {
+      const url = shareUrl ?? (await createShareLink());
+      await navigator.clipboard.writeText(url);
+      setShareStatus("Copied");
+      window.setTimeout(() => setShareStatus("Share"), 1800);
+    } catch {
+      setShareStatus("Could not copy");
+      window.setTimeout(() => setShareStatus("Share"), 1800);
+    }
   }
 
   function addItem() {
@@ -173,9 +187,17 @@ export function TierListEditor({ id }: { id: string }) {
     <>
       {topbarActionSlot
         ? createPortal(
-            <button className="button dark" onClick={() => void exportImage()}>
-              <Download size={16} /> Export PNG
-            </button>,
+            <>
+              {syncMode === "cloud" ? (
+                <button className="button" onClick={() => void shareList()}>
+                  {shareUrl ? <Copy size={16} /> : <Share2 size={16} />}
+                  {shareStatus}
+                </button>
+              ) : null}
+              <button className="button dark" onClick={() => void exportImage()}>
+                <Download size={16} /> Export PNG
+              </button>
+            </>,
             topbarActionSlot,
           )
         : null}
@@ -304,7 +326,8 @@ export function TierListEditor({ id }: { id: string }) {
             title={title}
           />
           <p className="muted">
-            Drag items into rows; every edit is saved automatically.
+            Drag items into rows; every edit is saved automatically
+            {syncMode === "cloud" ? " to cloud sync." : " in this browser."}
           </p>
         </div>
       </div>
