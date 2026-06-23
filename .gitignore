@@ -10,3 +10,4 @@ out/
 .agents/
 AGENTS.md
 .pnpm-store/
+.playwright-cli/
