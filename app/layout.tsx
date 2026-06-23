@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
 import { AuthKitProvider } from "@workos-inc/authkit-nextjs/components";
+import { getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getSiteUrl()),
   title: "Tier List Maker",
   description: "Create tier lists and export them as images.",
 };
