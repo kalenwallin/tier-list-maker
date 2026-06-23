@@ -20,12 +20,12 @@ export function readLocalTierLists(): StoredTierList[] {
   }
 }
 
-export function createLocalTierList(title?: string) {
+export function createLocalTierList(title?: string, id = createId("local-list")) {
   const list: StoredTierList = {
-    id: createId("local-list"),
+    id,
     ...createBlankTierList(title),
   };
-  const lists = [list, ...readLocalTierLists()];
+  const lists = [list, ...readLocalTierLists().filter((stored) => stored.id !== id)];
   writeLocalTierLists(lists);
   return list;
 }

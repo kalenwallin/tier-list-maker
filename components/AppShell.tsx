@@ -1,9 +1,23 @@
 import { Trophy } from "lucide-react";
 import Link from "next/link";
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 import { AuthNav } from "./AuthNav";
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({
+  children,
+  hideDashboard = false,
+  hideSignOut = false,
+  hideSignedOutActions = false,
+  signedOutPrimaryHref,
+  signedOutPrimaryLabel,
+}: {
+  children: ReactNode;
+  hideDashboard?: boolean;
+  hideSignOut?: boolean;
+  hideSignedOutActions?: boolean;
+  signedOutPrimaryHref?: string;
+  signedOutPrimaryLabel?: string;
+}) {
   return (
     <main className="page-shell">
       <header className="topbar">
@@ -14,10 +28,18 @@ export function AppShell({ children }: { children: ReactNode }) {
           <span>Tier List Maker</span>
         </Link>
         <nav className="nav-actions">
-          <Link className="button" href="/dashboard">
-            Dashboard
-          </Link>
-          <AuthNav />
+          <span className="topbar-action-slot" id="topbar-leading-action-slot" />
+          {hideDashboard ? null : (
+            <Link className="button" href="/dashboard">
+              Dashboard
+            </Link>
+          )}
+          <AuthNav
+            hideSignedOutActions={hideSignedOutActions}
+            hideSignOut={hideSignOut}
+            signedOutPrimaryHref={signedOutPrimaryHref}
+            signedOutPrimaryLabel={signedOutPrimaryLabel}
+          />
           <span className="topbar-action-slot" id="topbar-action-slot" />
         </nav>
       </header>

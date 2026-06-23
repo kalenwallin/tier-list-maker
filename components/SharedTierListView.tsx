@@ -1,17 +1,37 @@
 "use client";
 
-import { api } from "@/convex/_generated/api";
-import { StoredTierList } from "@/lib/db";
+import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import { useQuery } from "convex/react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Pencil } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
+import type { StoredTierList } from "@/lib/db";
 import { TierListPreview } from "./TierListPreview";
 
+type SharedTierList = StoredTierList & {
+  _id: Id<"tierLists">;
+};
+
 export function SharedTierListView({ shareId }: { shareId: string }) {
+  const { user, loading: authLoading } = useAuth();
+  const [topbarLeadingActionSlot, setTopbarLeadingActionSlot] =
+    useState<HTMLElement | null>(null);
   const list = useQuery(api.tierLists.getShared, { shareId }) as
-    | StoredTierList
+    | SharedTierList
     | null
     | undefined;
+  const ownerEmail = list?.ownerEmail?.trim().toLowerCase();
+  const viewerEmail = user?.email?.trim().toLowerCase();
+  const canEdit = !authLoading && Boolean(ownerEmail && viewerEmail === ownerEmail);
+
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    setTopbarLeadingActionSlot(document.getElementById("topbar-leading-action-slot"));
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   if (list === undefined) {
     return (
@@ -35,6 +55,14 @@ export function SharedTierListView({ shareId }: { shareId: string }) {
 
   return (
     <div className="shared-view">
+      {canEdit && topbarLeadingActionSlot
+        ? createPortal(
+            <Link className="button" href={`/lists/${list._id}`}>
+              <Pencil size={16} /> Edit
+            </Link>,
+            topbarLeadingActionSlot,
+          )
+        : null}
       <TierListPreview
         description={list.description}
         items={list.items}

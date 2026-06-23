@@ -31,6 +31,7 @@ type UseTierListsResult = {
   isMigratingLocalData: boolean;
   createList: (title?: string) => Promise<string>;
   removeList: (id: string) => Promise<void>;
+  createShareLink: (id: string) => Promise<string>;
   exportData: () => Promise<LocalDataBackup>;
   importData: (contents: string) => Promise<number>;
 };
@@ -58,6 +59,7 @@ export function useTierLists(): UseTierListsResult {
     | undefined;
   const createTierList = useMutation(api.tierLists.create);
   const removeTierList = useMutation(api.tierLists.remove);
+  const createRemoteShareLink = useMutation(api.tierLists.createShareLink);
   const importTierLists = useMutation(api.tierLists.importMany);
   const lists = useMemo(() => {
     if (authLoading || localLoading) return undefined;
@@ -81,6 +83,17 @@ export function useTierLists(): UseTierListsResult {
     }
 
     await removeTierList({ id: id as Id<"tierLists">, ownerEmail });
+  }
+
+  async function createShareLink(id: string) {
+    if (!ownerEmail) {
+      throw new Error("Sign in to cloud sync before sharing tier lists.");
+    }
+
+    const shareId =
+      lists?.find((list) => list.id === id)?.shareId ??
+      (await createRemoteShareLink({ id: id as Id<"tierLists">, ownerEmail }));
+    return `${window.location.origin}/share/${shareId}`;
   }
 
   async function exportData() {
@@ -114,6 +127,7 @@ export function useTierLists(): UseTierListsResult {
     isMigratingLocalData,
     createList,
     removeList,
+    createShareLink,
     exportData,
     importData,
   };
@@ -137,11 +151,32 @@ export function useTierList(id: string): UseTierListResult {
   const updateTierList = useMutation(api.tierLists.update);
   const createRemoteShareLink = useMutation(api.tierLists.createShareLink);
   const remoteList = shouldQueryByLocalId ? remoteListByLocalId : remoteListById;
+  const [recoveredLocalList, setRecoveredLocalList] =
+    useState<StoredTierList | null>(null);
+
+  useEffect(() => {
+    if (authLoading || ownerEmail || localLoading || !isLocalTierListId(id)) return;
+    if (recoveredLocalList?.id === id) return;
+
+    const existingLocalList = readLocalTierLists().find(
+      (candidate) => candidate.id === id,
+    );
+    setRecoveredLocalList(existingLocalList ?? createLocalTierList("New tier list", id));
+  }, [authLoading, id, localLoading, ownerEmail, recoveredLocalList?.id]);
+
   const list = useMemo(() => {
-    if (authLoading || localLoading) return undefined;
+    if (authLoading) return undefined;
     if (!ownerEmail) {
-      return localLists.find((candidate) => candidate.id === id) ?? null;
+      const localList =
+        localLists.find((candidate) => candidate.id === id) ??
+        (recoveredLocalList?.id === id ? recoveredLocalList : undefined) ??
+        (isLocalTierListId(id)
+          ? readLocalTierLists().find((candidate) => candidate.id === id)
+          : undefined);
+      if (localList) return localList;
+      return localLoading || isLocalTierListId(id) ? undefined : null;
     }
+    if (localLoading) return undefined;
     if (isMigratingLocalData && shouldQueryByLocalId) return undefined;
     if (remoteList === undefined) return undefined;
     if (remoteList === null) return null;
@@ -153,6 +188,7 @@ export function useTierList(id: string): UseTierListResult {
     localLists,
     localLoading,
     ownerEmail,
+    recoveredLocalList,
     remoteList,
     shouldQueryByLocalId,
   ]);

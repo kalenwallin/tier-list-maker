@@ -141,6 +141,50 @@ button {
   padding: 0;
 }
 
+.share-button {
+  position: relative;
+}
+
+.share-button.is-copied::after {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  z-index: 2;
+  border: 2px solid #111;
+  border-radius: 6px;
+  background: #111;
+  color: #fff;
+  content: attr(data-tooltip);
+  font-size: 0.76rem;
+  font-weight: 800;
+  line-height: 1;
+  padding: 6px 8px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.share-button.is-copied::before {
+  position: absolute;
+  bottom: calc(100% + 3px);
+  left: 50%;
+  z-index: 3;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid #111;
+  border-bottom: 2px solid #111;
+  background: #111;
+  content: "";
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.dashboard-export-stage {
+  position: fixed;
+  top: 0;
+  left: -12000px;
+  width: 980px;
+  pointer-events: none;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -161,7 +205,8 @@ button {
   display: grid;
   grid-template-columns: minmax(0, 0.95fr) minmax(360px, 1.35fr);
   gap: 28px;
-  align-items: start;
+  min-height: calc(100svh - 150px);
+  align-items: center;
 }
 
 .hero-copy h1 {
@@ -253,6 +298,24 @@ button {
 
 .tier-export-card.is-exporting .item-tray {
   display: none !important;
+}
+
+.tier-export-inner.is-exporting [data-export-exclude="true"] {
+  display: none !important;
+}
+
+.tier-export-inner.is-exporting .preview-header {
+  display: block;
+}
+
+.tier-export-inner.is-exporting .preview-heading {
+  width: 100%;
+}
+
+.tier-export-inner.is-exporting .single-line-truncate {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
 }
 
 .panel-pad {
@@ -547,6 +610,11 @@ button {
   .hero-grid,
   .split {
     grid-template-columns: 1fr;
+  }
+
+  .hero-grid {
+    min-height: auto;
+    align-items: start;
   }
 
   .hero-copy h1 {

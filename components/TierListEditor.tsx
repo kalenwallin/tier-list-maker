@@ -4,7 +4,16 @@ import { createId, Tier, TierItem } from "@/lib/tier-list";
 import { useTierList } from "@/lib/use-tier-lists";
 import { StoredTierList } from "@/lib/db";
 import { toPng } from "html-to-image";
-import { Check, Copy, Download, Loader2, Plus, Share2, Trash2 } from "lucide-react";
+import {
+  Check,
+  Copy,
+  Download,
+  Eye,
+  Loader2,
+  Plus,
+  Share2,
+  Trash2,
+} from "lucide-react";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
@@ -23,6 +32,8 @@ export function TierListEditor({ id }: { id: string }) {
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [items, setItems] = useState<TierItem[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isPreviewing, setIsPreviewing] = useState(false);
   const [saveStatus, setSaveStatus] = useState("Saved");
   const [shareStatus, setShareStatus] = useState("Share");
   const [newTier, setNewTier] = useState("");
@@ -85,21 +96,28 @@ export function TierListEditor({ id }: { id: string }) {
 
   async function exportImage() {
     if (!exportRef.current) return;
-    const dataUrl = await withSuppressedFetchWarnings(() =>
-      toPng(exportRef.current!, {
-        pixelRatio: 2,
-        backgroundColor: "#ffffff",
-        cacheBust: true,
-        imagePlaceholder: TRANSPARENT_IMAGE_PLACEHOLDER,
-        onImageErrorHandler: () => undefined,
-        filter: (node) =>
-          !(node instanceof HTMLElement && node.dataset.exportExclude === "true"),
-      }),
-    );
-    const link = document.createElement("a");
-    link.href = dataUrl;
-    link.download = `${title || "tier-list"}.png`;
-    link.click();
+    setIsExporting(true);
+
+    try {
+      await nextFrame();
+      const dataUrl = await withSuppressedFetchWarnings(() =>
+        toPng(exportRef.current!, {
+          pixelRatio: 2,
+          backgroundColor: "#ffffff",
+          cacheBust: true,
+          imagePlaceholder: TRANSPARENT_IMAGE_PLACEHOLDER,
+          onImageErrorHandler: () => undefined,
+          filter: (node) =>
+            !(node instanceof HTMLElement && node.dataset.exportExclude === "true"),
+        }),
+      );
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      link.download = `${title || "tier-list"}.png`;
+      link.click();
+    } finally {
+      setIsExporting(false);
+    }
   }
 
   async function shareList() {
@@ -112,6 +130,30 @@ export function TierListEditor({ id }: { id: string }) {
     } catch {
       setShareStatus("Could not copy");
       window.setTimeout(() => setShareStatus("Share"), 1800);
+    }
+  }
+
+  async function previewSharedLink() {
+    if (syncMode !== "cloud") return;
+
+    setIsPreviewing(true);
+    setIsSaving(true);
+    setSaveStatus("Saving");
+
+    try {
+      const snapshot = createSnapshot({ title, description, tiers, items });
+      await saveList({ title, description, tiers, items });
+      lastSavedSnapshot.current = snapshot;
+      setSaveStatus("Saved to cloud");
+
+      const url = shareUrl ?? (await createShareLink());
+      window.location.assign(url);
+    } catch {
+      setSaveStatus("Could not open preview");
+      window.setTimeout(() => setSaveStatus("Saved to cloud"), 1800);
+    } finally {
+      setIsSaving(false);
+      setIsPreviewing(false);
     }
   }
 
@@ -189,12 +231,31 @@ export function TierListEditor({ id }: { id: string }) {
         ? createPortal(
             <>
               {syncMode === "cloud" ? (
-                <button className="button" onClick={() => void shareList()}>
-                  {shareUrl ? <Copy size={16} /> : <Share2 size={16} />}
-                  {shareStatus}
-                </button>
+                <>
+                  <button
+                    className="button"
+                    disabled={isPreviewing}
+                    onClick={() => void previewSharedLink()}
+                    type="button"
+                  >
+                    {isPreviewing ? <Loader2 size={16} /> : <Eye size={16} />}
+                    {isPreviewing ? "Opening" : "Preview"}
+                  </button>
+                  <button
+                    className="button"
+                    onClick={() => void shareList()}
+                    type="button"
+                  >
+                    {shareUrl ? <Copy size={16} /> : <Share2 size={16} />}
+                    {shareStatus}
+                  </button>
+                </>
               ) : null}
-              <button className="button dark" onClick={() => void exportImage()}>
+              <button
+                className="button dark"
+                onClick={() => void exportImage()}
+                type="button"
+              >
                 <Download size={16} /> Export PNG
               </button>
             </>,
@@ -263,14 +324,18 @@ export function TierListEditor({ id }: { id: string }) {
                       )
                     }
                   />
-                  <button className="button icon" onClick={() => removeItem(item.id)}>
+                  <button
+                    className="button icon"
+                    onClick={() => removeItem(item.id)}
+                    type="button"
+                  >
                     <Trash2 size={16} />
                   </button>
                 </div>
               </div>
             ))}
           </div>
-          <button className="button" onClick={addItem}>
+          <button className="button" onClick={addItem} type="button">
             <Plus size={16} /> Add item
           </button>
         </div>
@@ -291,7 +356,11 @@ export function TierListEditor({ id }: { id: string }) {
                   value={tier.color}
                   onChange={(event) => updateTier(tier.id, { color: event.target.value })}
                 />
-                <button className="button icon" onClick={() => removeTier(tier.id)}>
+                <button
+                  className="button icon"
+                  onClick={() => removeTier(tier.id)}
+                  type="button"
+                >
                   <Trash2 size={16} />
                 </button>
               </div>
@@ -304,7 +373,7 @@ export function TierListEditor({ id }: { id: string }) {
               value={newTier}
               onChange={(event) => setNewTier(event.target.value)}
             />
-            <button className="button icon" onClick={addTier}>
+            <button className="button icon" onClick={addTier} type="button">
               <Plus size={16} />
             </button>
           </div>
@@ -317,6 +386,7 @@ export function TierListEditor({ id }: { id: string }) {
             draggable
             expandableHeader
             exportRef={exportRef}
+            isExporting={isExporting}
             items={items}
             onDragStart={(itemId) => {
               draggedItemId.current = itemId;
@@ -338,6 +408,12 @@ export function TierListEditor({ id }: { id: string }) {
 
 const TRANSPARENT_IMAGE_PLACEHOLDER =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+
+function nextFrame() {
+  return new Promise<void>((resolve) => {
+    requestAnimationFrame(() => resolve());
+  });
+}
 
 function createSnapshot(
   value: Pick<StoredTierList, "title" | "description" | "tiers" | "items">,

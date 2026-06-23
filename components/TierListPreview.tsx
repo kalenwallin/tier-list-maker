@@ -2,7 +2,7 @@
 
 import { Tier, TierItem } from "@/lib/tier-list";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { DragEvent, RefObject, useState } from "react";
+import { DragEvent, RefObject, useLayoutEffect, useRef, useState } from "react";
 
 type Props = {
   title?: string;
@@ -15,6 +15,7 @@ type Props = {
   onDragStart?: (itemId: string) => void;
   exportRef?: RefObject<HTMLDivElement | null>;
   expandableHeader?: boolean;
+  isExporting?: boolean;
 };
 
 export function TierListPreview({
@@ -28,11 +29,56 @@ export function TierListPreview({
   onDragStart,
   exportRef,
   expandableHeader = false,
+  isExporting = false,
 }: Props) {
   const unranked = items.filter((item) => !item.tierId);
   const [isHeaderExpanded, setIsHeaderExpanded] = useState(false);
-  const shouldCollapseHeader = expandableHeader && !isHeaderExpanded;
-  const hasHeaderContent = Boolean(title || description);
+  const [headerCanExpand, setHeaderCanExpand] = useState(false);
+  const previewHeaderRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const descriptionRef = useRef<HTMLParagraphElement>(null);
+  const shouldCollapseHeader =
+    expandableHeader && headerCanExpand && !isHeaderExpanded && !isExporting;
+  const trimmedDescription = description?.trim();
+  const hasDescription = Boolean(trimmedDescription);
+  const hasHeaderContent = Boolean(title || hasDescription);
+
+  useLayoutEffect(() => {
+    if (!expandableHeader || isExporting) {
+      setHeaderCanExpand(false);
+      return;
+    }
+
+    const previewHeader = previewHeaderRef.current;
+    if (!previewHeader) return;
+
+    function measureHeaderOverflow() {
+      const headerWidth = previewHeaderRef.current?.clientWidth ?? 0;
+      const nextHeaderCanExpand =
+        headerWidth > 0 &&
+        [titleRef.current, descriptionRef.current].some((element) =>
+          overflowsSingleLine(element, headerWidth),
+        );
+
+      setHeaderCanExpand((current) =>
+        current === nextHeaderCanExpand ? current : nextHeaderCanExpand,
+      );
+      if (!nextHeaderCanExpand) {
+        setIsHeaderExpanded(false);
+      }
+    }
+
+    measureHeaderOverflow();
+
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", measureHeaderOverflow);
+      return () => window.removeEventListener("resize", measureHeaderOverflow);
+    }
+
+    const observer = new ResizeObserver(measureHeaderOverflow);
+    observer.observe(previewHeader);
+    return () => observer.disconnect();
+  }, [expandableHeader, isExporting, title, trimmedDescription]);
 
   function allowDrop(event: DragEvent<HTMLDivElement>) {
     event.preventDefault();
@@ -48,20 +94,26 @@ export function TierListPreview({
       className={["panel tier-export-card", className].filter(Boolean).join(" ")}
       style={{ background: "#fff" }}
     >
-      <div ref={exportRef} className="panel-pad tier-export-inner">
+      <div
+        ref={exportRef}
+        className={["panel-pad tier-export-inner", isExporting ? "is-exporting" : undefined]
+          .filter(Boolean)
+          .join(" ")}
+      >
         {hasHeaderContent ? (
-          <div className="toolbar preview-header">
+          <div className="toolbar preview-header" ref={previewHeaderRef}>
             <div className="preview-heading">
               {title ? (
                 <h1
                   className={shouldCollapseHeader ? "single-line-truncate" : undefined}
+                  ref={titleRef}
                   style={{ margin: 0 }}
                   title={title}
                 >
                   {title}
                 </h1>
               ) : null}
-              {description ? (
+              {hasDescription ? (
                 <p
                   className={[
                     "muted",
@@ -70,13 +122,14 @@ export function TierListPreview({
                   ]
                     .filter(Boolean)
                     .join(" ")}
-                  title={description}
+                  ref={descriptionRef}
+                  title={trimmedDescription}
                 >
-                  {description}
+                  {trimmedDescription}
                 </p>
               ) : null}
             </div>
-            {expandableHeader ? (
+            {expandableHeader && headerCanExpand ? (
               <button
                 aria-expanded={isHeaderExpanded}
                 className="button preview-expand-button"
@@ -153,6 +206,20 @@ export function TierListPreview({
       ) : null}
     </section>
   );
+}
+
+function overflowsSingleLine(
+  element: HTMLHeadingElement | HTMLParagraphElement | null,
+  availableWidth: number,
+) {
+  if (!element) return false;
+
+  const previousWhiteSpace = element.style.whiteSpace;
+  element.style.whiteSpace = "nowrap";
+  const overflows = element.scrollWidth > availableWidth + 1;
+  element.style.whiteSpace = previousWhiteSpace;
+
+  return overflows;
 }
 
 function Tile({

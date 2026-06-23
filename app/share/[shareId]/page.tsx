@@ -59,7 +59,7 @@ export default async function SharedTierListPage({
 }: SharedTierListPageProps) {
   const { shareId } = await params;
   return (
-    <AppShell>
+    <AppShell hideSignOut>
       <SharedTierListView shareId={shareId} />
     </AppShell>
   );

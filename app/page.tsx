@@ -3,7 +3,10 @@ import { AppShell } from "@/components/AppShell";
 
 export default function Home() {
   return (
-    <AppShell>
+    <AppShell
+      signedOutPrimaryHref="/lists/new"
+      signedOutPrimaryLabel="Get Started"
+    >
       <HomeClient />
     </AppShell>
   );

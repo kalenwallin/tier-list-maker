@@ -1,0 +1,75 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e3]:
+      - link "Tier List Maker" [ref=e4] [cursor=pointer]:
+        - /url: /
+        - img [ref=e6]
+        - generic [ref=e12]: Tier List Maker
+      - navigation [ref=e13]:
+        - link "Dashboard" [ref=e14] [cursor=pointer]:
+          - /url: /dashboard
+        - generic [ref=e15]: Loading...
+    - generic [ref=e16]:
+      - generic [ref=e17]:
+        - heading "Build a tier list." [level=1] [ref=e18]
+        - paragraph [ref=e19]: Rank anything and export locally, sign in when you want cloud sync and shareable view-only links.
+        - generic [ref=e20]:
+          - link "Get started" [ref=e21] [cursor=pointer]:
+            - /url: /lists/new
+            - img [ref=e22]
+            - text: Get started
+          - generic [ref=e25]:
+            - img [ref=e26]
+            - text: Local save
+          - generic [ref=e28]:
+            - img [ref=e29]
+            - text: Cloud save
+          - generic [ref=e31]:
+            - img [ref=e32]
+            - text: PNG export
+          - generic [ref=e35]:
+            - img [ref=e36]
+            - text: Link share
+      - generic [ref=e43]:
+        - heading "Sample tier list" [level=1] [ref=e46]
+        - generic [ref=e47]:
+          - generic [ref=e48]:
+            - generic [ref=e49]: S
+            - generic [ref=e50]:
+              - article "Add your first item" [ref=e51]:
+                - generic [ref=e52]: A
+                - generic [ref=e53]: Add your first item
+              - article "Share with friends" [ref=e54]:
+                - generic [ref=e55]: S
+                - generic [ref=e56]: Share with friends
+          - generic [ref=e57]:
+            - generic [ref=e58]: A
+            - article "Weekend picks" [ref=e60]:
+              - generic [ref=e61]: W
+              - generic [ref=e62]: Weekend picks
+          - generic [ref=e63]:
+            - generic [ref=e64]: B
+            - generic [ref=e65]:
+              - article "Drag me into a tier" [ref=e66]:
+                - generic [ref=e67]: D
+                - generic [ref=e68]: Drag me into a tier
+              - article "Paste image URLs too" [ref=e69]:
+                - generic [ref=e70]: P
+                - generic [ref=e71]: Paste image URLs too
+          - generic [ref=e72]:
+            - generic [ref=e73]: C
+            - article "Maybe later" [ref=e75]:
+              - generic [ref=e76]: M
+              - generic [ref=e77]: Maybe later
+          - generic [ref=e78]:
+            - generic [ref=e79]: D
+            - article "Bold opinions" [ref=e81]:
+              - generic [ref=e82]: B
+              - generic [ref=e83]: Bold opinions
+          - generic [ref=e84]:
+            - generic [ref=e85]: F
+            - article "Skip pile" [ref=e87]:
+              - generic [ref=e88]: S
+              - generic [ref=e89]: Skip pile
+  - button "Open Next.js Dev Tools" [ref=e95] [cursor=pointer]:
+    - img [ref=e96]

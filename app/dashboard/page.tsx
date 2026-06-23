@@ -3,7 +3,7 @@ import { DashboardClient } from "@/components/DashboardClient";
 
 export default function DashboardPage() {
   return (
-    <AppShell>
+    <AppShell hideDashboard>
       <DashboardClient />
     </AppShell>
   );
