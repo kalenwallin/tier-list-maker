@@ -1,7 +1,8 @@
 "use client";
 
 import { Tier, TierItem } from "@/lib/tier-list";
-import { DragEvent, RefObject } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { DragEvent, RefObject, useState } from "react";
 
 type Props = {
   title?: string;
@@ -13,6 +14,7 @@ type Props = {
   onDropItem?: (tierId?: string) => void;
   onDragStart?: (itemId: string) => void;
   exportRef?: RefObject<HTMLDivElement | null>;
+  expandableHeader?: boolean;
 };
 
 export function TierListPreview({
@@ -25,8 +27,12 @@ export function TierListPreview({
   onDropItem,
   onDragStart,
   exportRef,
+  expandableHeader = false,
 }: Props) {
   const unranked = items.filter((item) => !item.tierId);
+  const [isHeaderExpanded, setIsHeaderExpanded] = useState(false);
+  const shouldCollapseHeader = expandableHeader && !isHeaderExpanded;
+  const hasHeaderContent = Boolean(title || description);
 
   function allowDrop(event: DragEvent<HTMLDivElement>) {
     event.preventDefault();
@@ -43,14 +49,45 @@ export function TierListPreview({
       style={{ background: "#fff" }}
     >
       <div ref={exportRef} className="panel-pad tier-export-inner">
-        {title ? (
-          <div className="toolbar">
-            <div>
-              <h1 style={{ margin: 0 }}>{title}</h1>
+        {hasHeaderContent ? (
+          <div className="toolbar preview-header">
+            <div className="preview-heading">
+              {title ? (
+                <h1
+                  className={shouldCollapseHeader ? "single-line-truncate" : undefined}
+                  style={{ margin: 0 }}
+                  title={title}
+                >
+                  {title}
+                </h1>
+              ) : null}
               {description ? (
-                <p className="muted preview-description">{description}</p>
+                <p
+                  className={[
+                    "muted",
+                    "preview-description",
+                    shouldCollapseHeader ? "single-line-truncate" : undefined,
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  title={description}
+                >
+                  {description}
+                </p>
               ) : null}
             </div>
+            {expandableHeader ? (
+              <button
+                aria-expanded={isHeaderExpanded}
+                className="button preview-expand-button"
+                data-export-exclude="true"
+                onClick={() => setIsHeaderExpanded((current) => !current)}
+                type="button"
+              >
+                {isHeaderExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                {isHeaderExpanded ? "Show less" : "Show more"}
+              </button>
+            ) : null}
           </div>
         ) : null}
         <div className="tier-board">

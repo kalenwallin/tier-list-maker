@@ -450,6 +450,14 @@ button {
   margin: 0;
 }
 
+.list-card-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
+}
+
 .muted {
   color: var(--muted);
 }
@@ -458,6 +466,25 @@ button {
   margin: 6px 0 0;
   line-height: 1.45;
   overflow-wrap: anywhere;
+}
+
+.preview-header {
+  align-items: flex-start;
+}
+
+.preview-heading {
+  flex: 1 1 18rem;
+  min-width: 0;
+}
+
+.single-line-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preview-expand-button {
+  flex: 0 0 auto;
 }
 
 .mini-bars {

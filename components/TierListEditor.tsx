@@ -315,6 +315,7 @@ export function TierListEditor({ id }: { id: string }) {
         <div className="preview-column">
           <TierListPreview
             draggable
+            expandableHeader
             exportRef={exportRef}
             items={items}
             onDragStart={(itemId) => {

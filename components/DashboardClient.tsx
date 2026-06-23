@@ -140,7 +140,9 @@ export function DashboardClient() {
             return (
               <article className="list-card" key={list.id}>
                 <div>
-                  <h2>{list.title}</h2>
+                  <h2 className="list-card-title" title={list.title}>
+                    {list.title}
+                  </h2>
                   <p className="muted">
                     Saved draft · {list.items.length} items
                   </p>
