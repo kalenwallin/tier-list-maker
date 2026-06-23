@@ -20,8 +20,8 @@ type OpenGraphImageProps = {
 export default async function OpenGraphImage({ params }: OpenGraphImageProps) {
   const { shareId } = await params;
   const list = await getSharedTierList(shareId);
-  const title = truncateText(list?.title || "Shared tier list", 68);
-  const description = truncateText(getShareDescription(list), 138);
+  const title = truncateText(list?.title || "Shared tier list", 28);
+  const description = truncateText(getShareDescription(list), 78);
   const tiers = list?.tiers.length ? list.tiers : DEFAULT_TIERS;
 
   return new ImageResponse(
@@ -61,6 +61,10 @@ export default async function OpenGraphImage({ params }: OpenGraphImageProps) {
                 fontSize: getTitleFontSize(title),
                 fontWeight: 900,
                 lineHeight: 0.9,
+                maxWidth: 1060,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
               }}
             >
               {title}
@@ -71,9 +75,10 @@ export default async function OpenGraphImage({ params }: OpenGraphImageProps) {
                 color: "#575750",
                 fontSize: 40,
                 lineHeight: 1.18,
-                maxWidth: 940,
-                whiteSpace: "normal",
-                overflowWrap: "break-word",
+                maxWidth: 1060,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
               }}
             >
               {description}
@@ -83,6 +88,8 @@ export default async function OpenGraphImage({ params }: OpenGraphImageProps) {
 
         <div style={{ flex: 1 }} />
 
+        <BrandRow />
+        <div style={{ height: 28 }} />
         <TierStrip tiers={tiers} />
       </div>
     ),
@@ -90,12 +97,12 @@ export default async function OpenGraphImage({ params }: OpenGraphImageProps) {
   );
 }
 
-function FaviconMark() {
+function FaviconMark({ size = 140 }: { size?: number }) {
   return (
     <svg
-      height="140"
+      height={size}
       viewBox="0 0 64 64"
-      width="140"
+      width={size}
       xmlns="http://www.w3.org/2000/svg"
     >
       <rect
@@ -125,6 +132,30 @@ function FaviconMark() {
         strokeWidth="4"
       />
     </svg>
+  );
+}
+
+function BrandRow() {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 14,
+      }}
+    >
+      <FaviconMark size={52} />
+      <div
+        style={{
+          color: "#111",
+          fontSize: 34,
+          fontWeight: 900,
+          lineHeight: 1,
+        }}
+      >
+        Tier List Maker
+      </div>
+    </div>
   );
 }
 
