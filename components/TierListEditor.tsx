@@ -10,6 +10,7 @@ import {
   Download,
   Eye,
   Loader2,
+  Pencil,
   Plus,
   Share2,
   Trash2,
@@ -19,7 +20,13 @@ import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
 import { TierListPreview } from "./TierListPreview";
 
-export function TierListEditor({ id }: { id: string }) {
+export function TierListEditor({
+  id,
+  previewMode = false,
+}: {
+  id: string;
+  previewMode?: boolean;
+}) {
   const { list, syncMode, shareUrl, saveList, createShareLink } = useTierList(id);
   const exportRef = useRef<HTMLDivElement>(null);
   const draggedItemId = useRef<string | null>(null);
@@ -222,6 +229,45 @@ export function TierListEditor({ id }: { id: string }) {
           Back to dashboard
         </Link>
       </section>
+    );
+  }
+
+  if (previewMode) {
+    const previewTitle = hydratedListId.current === list.id ? title : list.title;
+    const previewDescription =
+      hydratedListId.current === list.id ? description : (list.description ?? "");
+    const previewTiers = hydratedListId.current === list.id ? tiers : list.tiers;
+    const previewItems = hydratedListId.current === list.id ? items : list.items;
+
+    return (
+      <div className="shared-view">
+        {topbarActionSlot
+          ? createPortal(
+              <>
+                <Link className="button" href={`/lists/${id}`}>
+                  <Pencil size={16} /> Edit
+                </Link>
+                <button
+                  className="button dark"
+                  onClick={() => void exportImage()}
+                  type="button"
+                >
+                  <Download size={16} /> Export PNG
+                </button>
+              </>,
+              topbarActionSlot,
+            )
+          : null}
+        <TierListPreview
+          description={previewDescription}
+          expandableHeader
+          exportRef={exportRef}
+          isExporting={isExporting}
+          items={previewItems}
+          tiers={previewTiers}
+          title={previewTitle}
+        />
+      </div>
     );
   }
 

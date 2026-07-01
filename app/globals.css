@@ -498,6 +498,7 @@ button {
 }
 
 .list-card {
+  position: relative;
   display: grid;
   min-height: 180px;
   gap: 12px;
@@ -506,6 +507,27 @@ button {
   background: #fff;
   padding: 16px;
   box-shadow: 5px 5px 0 #111;
+}
+
+.list-card-preview-link {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  border-radius: 8px;
+}
+
+.list-card-preview-link:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 4px;
+}
+
+.list-card-summary {
+  pointer-events: none;
+}
+
+.list-card .nav-actions {
+  position: relative;
+  z-index: 2;
 }
 
 .list-card h2,

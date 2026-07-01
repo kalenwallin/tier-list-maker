@@ -250,7 +250,14 @@ export function DashboardClient() {
           {lists.map((list) => {
             return (
               <article className="list-card" key={list.id}>
-                <div>
+                <Link
+                  aria-label={`Open preview for ${list.title}`}
+                  className="list-card-preview-link"
+                  href={`/lists/${list.id}?mode=preview`}
+                >
+                  <span className="visually-hidden">Open preview</span>
+                </Link>
+                <div className="list-card-summary">
                   <h2 className="list-card-title" title={list.title}>
                     {list.title}
                   </h2>
@@ -258,7 +265,7 @@ export function DashboardClient() {
                     Saved draft · {list.items.length} items
                   </p>
                 </div>
-                <div className="mini-bars">
+                <div className="mini-bars list-card-summary" aria-hidden="true">
                   {list.tiers.slice(0, 5).map((tier) => (
                     <div
                       className="mini-bar"

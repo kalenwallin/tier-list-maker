@@ -4,10 +4,13 @@ import { TierListEditor } from "@/components/TierListEditor";
 
 export default async function ListEditorPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ mode?: string }>;
 }) {
   const { id } = await params;
+  const { mode } = await searchParams;
 
   if (id === "new") {
     return (
@@ -19,7 +22,7 @@ export default async function ListEditorPage({
 
   return (
     <AppShell hideSignedOutActions hideSignOut>
-      <TierListEditor id={id} />
+      <TierListEditor id={id} previewMode={mode === "preview"} />
     </AppShell>
   );
 }
