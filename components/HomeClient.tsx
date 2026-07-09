@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import { Cloud, Download, FilePlus2, HardDrive, Loader2, Share2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -19,11 +20,17 @@ const SAMPLE_ITEMS: TierItem[] = [
 ];
 
 export function HomeClient() {
+  const { user, loading } = useAuth();
   const { createList } = useTierLists();
   const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
 
   async function getStarted() {
+    if (user) {
+      router.push("/dashboard");
+      return;
+    }
+
     setIsCreating(true);
     try {
       const id = await createList("New tier list");
@@ -44,7 +51,7 @@ export function HomeClient() {
         <div className="nav-actions" style={{ justifyContent: "flex-start" }}>
           <button
             className="button primary"
-            disabled={isCreating}
+            disabled={loading || isCreating}
             onClick={() => void getStarted()}
             type="button"
           >
