@@ -2,15 +2,22 @@
 
 import { useTierLists } from "@/lib/use-tier-lists";
 import {
+  copyPngToClipboard,
+  downloadPng,
+  renderTierListPng,
+  waitForNextFrame,
+} from "@/lib/image-export";
+import {
   Check,
+  Copy,
   Download,
   FilePlus2,
   Loader2,
+  Pencil,
   Share2,
   Trash2,
   Upload,
 } from "lucide-react";
-import { toPng } from "html-to-image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
@@ -38,13 +45,18 @@ export function DashboardClient() {
   );
   const [sharingListId, setSharingListId] = useState<string | null>(null);
   const [copiedListId, setCopiedListId] = useState<string | null>(null);
+  const [copiedImageListId, setCopiedImageListId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const copyStatusTimeoutRef = useRef<number | null>(null);
+  const copyImageStatusTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     return () => {
       if (copyStatusTimeoutRef.current !== null) {
         window.clearTimeout(copyStatusTimeoutRef.current);
+      }
+      if (copyImageStatusTimeoutRef.current !== null) {
+        window.clearTimeout(copyImageStatusTimeoutRef.current);
       }
     };
   }, []);
@@ -103,34 +115,43 @@ export function DashboardClient() {
     setMessage(`Exported ${backup.lists.length} tier list${backup.lists.length === 1 ? "" : "s"}.`);
   }
 
-  async function exportImage(listId: string) {
+  async function exportImage(listId: string, action: "download" | "copy") {
     const list = lists?.find((candidate) => candidate.id === listId);
     if (!list) return;
 
     setExportingImageListId(listId);
+    setCopiedImageListId(null);
     setMessage(null);
+    if (copyImageStatusTimeoutRef.current !== null) {
+      window.clearTimeout(copyImageStatusTimeoutRef.current);
+      copyImageStatusTimeoutRef.current = null;
+    }
 
     try {
-      await nextFrame();
+      await waitForNextFrame();
       if (!imageExportRef.current) return;
 
-      const dataUrl = await withSuppressedFetchWarnings(() =>
-        toPng(imageExportRef.current!, {
-          pixelRatio: 2,
-          backgroundColor: "#ffffff",
-          cacheBust: true,
-          imagePlaceholder: TRANSPARENT_IMAGE_PLACEHOLDER,
-          onImageErrorHandler: () => undefined,
-          filter: (node) =>
-            !(node instanceof HTMLElement && node.dataset.exportExclude === "true"),
-        }),
+      const dataUrl = await renderTierListPng(imageExportRef.current);
+
+      if (action === "download") {
+        downloadPng(dataUrl, `${list.title || "tier-list"}.png`);
+        return;
+      }
+
+      await copyPngToClipboard(dataUrl);
+      setCopiedImageListId(listId);
+      copyImageStatusTimeoutRef.current = window.setTimeout(() => {
+        setCopiedImageListId(null);
+        copyImageStatusTimeoutRef.current = null;
+      }, 1800);
+    } catch (error) {
+      setMessage(
+        action === "copy"
+          ? error instanceof Error
+            ? error.message
+            : "Could not copy that tier list image."
+          : "Could not export that tier list as an image.",
       );
-      const link = document.createElement("a");
-      link.href = dataUrl;
-      link.download = `${list.title || "tier-list"}.png`;
-      link.click();
-    } catch {
-      setMessage("Could not export that tier list as an image.");
     } finally {
       setExportingImageListId(null);
     }
@@ -275,8 +296,13 @@ export function DashboardClient() {
                   ))}
                 </div>
                 <div className="nav-actions" style={{ justifyContent: "flex-start" }}>
-                  <Link className="button" href={`/lists/${list.id}`}>
-                    Edit
+                  <Link
+                    aria-label={`Edit ${list.title}`}
+                    className="button icon"
+                    href={`/lists/${list.id}`}
+                    title="Edit"
+                  >
+                    <Pencil size={16} />
                   </Link>
                   <button
                     className="button icon danger"
@@ -310,7 +336,7 @@ export function DashboardClient() {
                     className="button icon"
                     aria-label={`Download ${list.title} as an image`}
                     disabled={exportingImageListId === list.id}
-                    onClick={() => void exportImage(list.id)}
+                    onClick={() => void exportImage(list.id, "download")}
                     title="Download image"
                     type="button"
                   >
@@ -318,6 +344,29 @@ export function DashboardClient() {
                       <Loader2 size={16} />
                     ) : (
                       <Download size={16} />
+                    )}
+                  </button>
+                  <button
+                    className={`button icon share-button${copiedImageListId === list.id ? " is-copied" : ""}`}
+                    aria-label={
+                      copiedImageListId === list.id
+                        ? "Copied image"
+                        : `Copy ${list.title} image`
+                    }
+                    data-tooltip="Copied image"
+                    disabled={exportingImageListId === list.id}
+                    onClick={() => void exportImage(list.id, "copy")}
+                    title={
+                      copiedImageListId === list.id ? "Copied image" : "Copy image"
+                    }
+                    type="button"
+                  >
+                    {exportingImageListId === list.id ? (
+                      <Loader2 size={16} />
+                    ) : copiedImageListId === list.id ? (
+                      <Check size={16} />
+                    ) : (
+                      <Copy size={16} />
                     )}
                   </button>
                 </div>
@@ -328,36 +377,4 @@ export function DashboardClient() {
       )}
     </>
   );
-}
-
-const TRANSPARENT_IMAGE_PLACEHOLDER =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
-
-function nextFrame() {
-  return new Promise<void>((resolve) => {
-    requestAnimationFrame(() => resolve());
-  });
-}
-
-async function withSuppressedFetchWarnings<T>(callback: () => Promise<T>) {
-  const originalWarn = console.warn;
-
-  console.warn = (...args) => {
-    const [message] = args;
-    if (
-      typeof message === "string" &&
-      (message.startsWith("Failed to fetch resource:") ||
-        message === "Failed to fetch")
-    ) {
-      return;
-    }
-
-    originalWarn(...args);
-  };
-
-  try {
-    return await callback();
-  } finally {
-    console.warn = originalWarn;
-  }
 }

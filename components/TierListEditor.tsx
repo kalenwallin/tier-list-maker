@@ -3,7 +3,11 @@
 import { createId, Tier, TierItem } from "@/lib/tier-list";
 import { useTierList } from "@/lib/use-tier-lists";
 import { StoredTierList } from "@/lib/db";
-import { toPng } from "html-to-image";
+import {
+  copyPngToClipboard,
+  downloadPng,
+  renderTierListPng,
+} from "@/lib/image-export";
 import {
   Check,
   Copy,
@@ -43,6 +47,7 @@ export function TierListEditor({
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [saveStatus, setSaveStatus] = useState("Saved");
   const [shareStatus, setShareStatus] = useState("Share");
+  const [copyImageStatus, setCopyImageStatus] = useState("Copy image");
   const [newTier, setNewTier] = useState("");
   const [topbarActionSlot, setTopbarActionSlot] = useState<HTMLElement | null>(
     null,
@@ -106,24 +111,27 @@ export function TierListEditor({
     setIsExporting(true);
 
     try {
-      await nextFrame();
-      const dataUrl = await withSuppressedFetchWarnings(() =>
-        toPng(exportRef.current!, {
-          pixelRatio: 2,
-          backgroundColor: "#ffffff",
-          cacheBust: true,
-          imagePlaceholder: TRANSPARENT_IMAGE_PLACEHOLDER,
-          onImageErrorHandler: () => undefined,
-          filter: (node) =>
-            !(node instanceof HTMLElement && node.dataset.exportExclude === "true"),
-        }),
-      );
-      const link = document.createElement("a");
-      link.href = dataUrl;
-      link.download = `${title || "tier-list"}.png`;
-      link.click();
+      const dataUrl = await renderTierListPng(exportRef.current);
+      downloadPng(dataUrl, `${title || "tier-list"}.png`);
     } finally {
       setIsExporting(false);
+    }
+  }
+
+  async function copyImage() {
+    if (!exportRef.current) return;
+    setIsExporting(true);
+    setCopyImageStatus("Copying");
+
+    try {
+      const dataUrl = await renderTierListPng(exportRef.current);
+      await copyPngToClipboard(dataUrl);
+      setCopyImageStatus("Copied");
+    } catch {
+      setCopyImageStatus("Copy failed");
+    } finally {
+      setIsExporting(false);
+      window.setTimeout(() => setCopyImageStatus("Copy image"), 1800);
     }
   }
 
@@ -254,6 +262,21 @@ export function TierListEditor({
                 >
                   <Download size={16} /> Export PNG
                 </button>
+                <button
+                  className="button"
+                  disabled={isExporting}
+                  onClick={() => void copyImage()}
+                  type="button"
+                >
+                  {copyImageStatus === "Copying" ? (
+                    <Loader2 size={16} />
+                  ) : copyImageStatus === "Copied" ? (
+                    <Check size={16} />
+                  ) : (
+                    <Copy size={16} />
+                  )}
+                  {copyImageStatus}
+                </button>
               </>,
               topbarActionSlot,
             )
@@ -299,10 +322,26 @@ export function TierListEditor({
               ) : null}
               <button
                 className="button dark"
+                disabled={isExporting}
                 onClick={() => void exportImage()}
                 type="button"
               >
                 <Download size={16} /> Export PNG
+              </button>
+              <button
+                className="button"
+                disabled={isExporting}
+                onClick={() => void copyImage()}
+                type="button"
+              >
+                {copyImageStatus === "Copying" ? (
+                  <Loader2 size={16} />
+                ) : copyImageStatus === "Copied" ? (
+                  <Check size={16} />
+                ) : (
+                  <Copy size={16} />
+                )}
+                {copyImageStatus}
               </button>
             </>,
             topbarActionSlot,
@@ -452,15 +491,6 @@ export function TierListEditor({
   );
 }
 
-const TRANSPARENT_IMAGE_PLACEHOLDER =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
-
-function nextFrame() {
-  return new Promise<void>((resolve) => {
-    requestAnimationFrame(() => resolve());
-  });
-}
-
 function createSnapshot(
   value: Pick<StoredTierList, "title" | "description" | "tiers" | "items">,
 ) {
@@ -470,27 +500,4 @@ function createSnapshot(
     tiers: value.tiers,
     items: value.items,
   });
-}
-
-async function withSuppressedFetchWarnings<T>(callback: () => Promise<T>) {
-  const originalWarn = console.warn;
-
-  console.warn = (...args) => {
-    const [message] = args;
-    if (
-      typeof message === "string" &&
-      (message.startsWith("Failed to fetch resource:") ||
-        message === "Failed to fetch")
-    ) {
-      return;
-    }
-
-    originalWarn(...args);
-  };
-
-  try {
-    return await callback();
-  } finally {
-    console.warn = originalWarn;
-  }
 }

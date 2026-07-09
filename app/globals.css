@@ -528,6 +528,8 @@ button {
 .list-card .nav-actions {
   position: relative;
   z-index: 2;
+  flex-wrap: nowrap;
+  gap: 8px;
 }
 
 .list-card h2,
