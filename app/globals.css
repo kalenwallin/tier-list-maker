@@ -525,6 +525,26 @@ button {
   pointer-events: none;
 }
 
+.list-card-details {
+  min-height: 82px;
+  padding-right: 78px;
+}
+
+.list-card-item-count {
+  position: absolute;
+  top: 30px;
+  right: 14px;
+  z-index: 2;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.2;
+  pointer-events: none;
+  transform: translateY(-50%);
+  white-space: nowrap;
+}
+
 .list-card .nav-actions {
   position: relative;
   z-index: 2;
@@ -540,6 +560,18 @@ button {
 .list-card-title {
   display: -webkit-box;
   overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
+}
+
+.list-card-description {
+  display: -webkit-box;
+  margin: 8px 0 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.4;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow-wrap: anywhere;

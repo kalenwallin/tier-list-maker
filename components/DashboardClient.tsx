@@ -269,6 +269,8 @@ export function DashboardClient() {
       ) : (
         <section className="grid">
           {lists.map((list) => {
+            const description = list.description.trim();
+
             return (
               <article className="list-card" key={list.id}>
                 <Link
@@ -278,13 +280,16 @@ export function DashboardClient() {
                 >
                   <span className="visually-hidden">Open preview</span>
                 </Link>
-                <div className="list-card-summary">
+                <p className="list-card-item-count">{list.items.length} items</p>
+                <div className="list-card-details list-card-summary">
                   <h2 className="list-card-title" title={list.title}>
                     {list.title}
                   </h2>
-                  <p className="muted">
-                    Saved draft · {list.items.length} items
-                  </p>
+                  {description ? (
+                    <p className="list-card-description" title={description}>
+                      {description}
+                    </p>
+                  ) : null}
                 </div>
                 <div className="mini-bars list-card-summary" aria-hidden="true">
                   {list.tiers.slice(0, 5).map((tier) => (
