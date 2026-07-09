@@ -3,6 +3,7 @@ import {
   getSharedTierList,
   truncateText,
 } from "@/lib/share-metadata";
+import { getSiteUrl } from "@/lib/site-url";
 import { DEFAULT_TIERS, type Tier } from "@/lib/tier-list";
 import { ImageResponse } from "next/og";
 
@@ -23,6 +24,7 @@ export default async function OpenGraphImage({ params }: OpenGraphImageProps) {
   const title = truncateText(list?.title || "Shared tier list", 28);
   const description = truncateText(getShareDescription(list), 78);
   const tiers = list?.tiers.length ? list.tiers : DEFAULT_TIERS;
+  const websiteUrl = getMarketingUrl();
 
   return new ImageResponse(
     (
@@ -41,7 +43,7 @@ export default async function OpenGraphImage({ params }: OpenGraphImageProps) {
         <div
           style={{
             display: "flex",
-            alignItems: "center",
+            alignItems: "flex-start",
             gap: 32,
             marginBottom: 22,
             width: "100%",
@@ -53,15 +55,15 @@ export default async function OpenGraphImage({ params }: OpenGraphImageProps) {
               flex: 1,
               flexDirection: "column",
               minWidth: 0,
+              paddingRight: 24,
             }}
           >
-
             <div
               style={{
                 fontSize: getTitleFontSize(title),
                 fontWeight: 900,
                 lineHeight: 0.9,
-                maxWidth: 1060,
+                maxWidth: 760,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
@@ -75,7 +77,7 @@ export default async function OpenGraphImage({ params }: OpenGraphImageProps) {
                 color: "#575750",
                 fontSize: 40,
                 lineHeight: 1.18,
-                maxWidth: 1060,
+                maxWidth: 820,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
@@ -84,6 +86,8 @@ export default async function OpenGraphImage({ params }: OpenGraphImageProps) {
               {description}
             </div>
           </div>
+
+          <WebsiteUrl url={websiteUrl} />
         </div>
 
         <div style={{ flex: 1 }} />
@@ -94,6 +98,30 @@ export default async function OpenGraphImage({ params }: OpenGraphImageProps) {
       </div>
     ),
     size,
+  );
+}
+
+function WebsiteUrl({ url }: { url: string }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexShrink: 0,
+        alignItems: "center",
+        justifyContent: "center",
+        border: "4px solid #111",
+        borderRadius: 999,
+        background: "#fff",
+        boxShadow: "6px 6px 0 #111",
+        color: "#111",
+        fontSize: 28,
+        fontWeight: 900,
+        lineHeight: 1,
+        padding: "16px 22px",
+      }}
+    >
+      {url}
+    </div>
   );
 }
 
@@ -221,6 +249,10 @@ function getTitleFontSize(title: string) {
   if (title.length <= 14) return 116;
   if (title.length <= 24) return 96;
   return 78;
+}
+
+function getMarketingUrl() {
+  return getSiteUrl().replace(/^https?:\/\//, "").replace(/\/$/, "");
 }
 
 function getTierColor(color: string) {

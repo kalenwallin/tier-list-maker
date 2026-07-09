@@ -305,11 +305,14 @@ button {
 }
 
 .tier-export-inner.is-exporting .preview-header {
-  display: block;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: flex-start;
 }
 
 .tier-export-inner.is-exporting .preview-heading {
-  width: 100%;
+  flex: 1 1 auto;
+  width: auto;
 }
 
 .tier-export-inner.is-exporting .single-line-truncate {
@@ -604,6 +607,20 @@ button {
 
 .preview-expand-button {
   flex: 0 0 auto;
+}
+
+.marketing-url {
+  flex: 0 0 auto;
+  border: 2px solid #111;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 3px 3px 0 #111;
+  color: #111;
+  font-size: 0.86rem;
+  font-weight: 900;
+  line-height: 1;
+  padding: 9px 12px;
+  white-space: nowrap;
 }
 
 .mini-bars {

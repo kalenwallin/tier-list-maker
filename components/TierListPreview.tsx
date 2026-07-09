@@ -1,6 +1,7 @@
 "use client";
 
 import { Tier, TierItem } from "@/lib/tier-list";
+import { getSiteUrl } from "@/lib/site-url";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { DragEvent, RefObject, useLayoutEffect, useRef, useState } from "react";
 
@@ -42,6 +43,7 @@ export function TierListPreview({
   const trimmedDescription = description?.trim();
   const hasDescription = Boolean(trimmedDescription);
   const hasHeaderContent = Boolean(title || hasDescription);
+  const marketingUrl = getMarketingUrl();
 
   useLayoutEffect(() => {
     if (!expandableHeader || isExporting) {
@@ -100,7 +102,7 @@ export function TierListPreview({
           .filter(Boolean)
           .join(" ")}
       >
-        {hasHeaderContent ? (
+        {hasHeaderContent || isExporting ? (
           <div className="toolbar preview-header" ref={previewHeaderRef}>
             <div className="preview-heading">
               {title ? (
@@ -129,6 +131,9 @@ export function TierListPreview({
                 </p>
               ) : null}
             </div>
+            {isExporting ? (
+              <div className="marketing-url">{marketingUrl}</div>
+            ) : null}
             {expandableHeader && headerCanExpand ? (
               <button
                 aria-expanded={isHeaderExpanded}
@@ -220,6 +225,10 @@ function overflowsSingleLine(
   element.style.whiteSpace = previousWhiteSpace;
 
   return overflows;
+}
+
+function getMarketingUrl() {
+  return getSiteUrl().replace(/^https?:\/\//, "").replace(/\/$/, "");
 }
 
 function Tile({
