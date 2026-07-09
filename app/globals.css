@@ -530,7 +530,6 @@ button {
 
 .list-card-details {
   min-height: 82px;
-  padding-right: 78px;
 }
 
 .list-card-item-count {
@@ -563,6 +562,7 @@ button {
 .list-card-title {
   display: -webkit-box;
   overflow: hidden;
+  padding-right: 64px;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow-wrap: anywhere;
