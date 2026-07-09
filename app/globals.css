@@ -532,6 +532,10 @@ button {
   min-height: 82px;
 }
 
+.grid.has-wrapped-card-summary .list-card-details {
+  min-height: 108px;
+}
+
 .list-card-item-count {
   position: absolute;
   top: 30px;

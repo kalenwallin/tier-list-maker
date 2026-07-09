@@ -38,8 +38,10 @@ export function DashboardClient() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageExportRef = useRef<HTMLDivElement>(null);
+  const listGridRef = useRef<HTMLElement>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [hasWrappedCardSummary, setHasWrappedCardSummary] = useState(false);
   const [exportingImageListId, setExportingImageListId] = useState<string | null>(
     null,
   );
@@ -60,6 +62,54 @@ export function DashboardClient() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    const grid = listGridRef.current;
+    if (!grid) {
+      setHasWrappedCardSummary(false);
+      return;
+    }
+
+    let isActive = true;
+    const summaryTexts = Array.from(
+      grid.querySelectorAll<HTMLElement>("[data-list-card-summary-text]"),
+    );
+
+    const getLineHeight = (element: HTMLElement) => {
+      const styles = window.getComputedStyle(element);
+      const lineHeight = Number.parseFloat(styles.lineHeight);
+
+      if (Number.isFinite(lineHeight)) return lineHeight;
+
+      return Number.parseFloat(styles.fontSize) * 1.2;
+    };
+
+    const measure = () => {
+      const hasWrappedSummary = summaryTexts.some((element) => {
+        const lineHeight = getLineHeight(element);
+        return element.getBoundingClientRect().height > lineHeight * 1.45;
+      });
+
+      if (isActive) {
+        setHasWrappedCardSummary(hasWrappedSummary);
+      }
+    };
+
+    measure();
+
+    const resizeObserver = new ResizeObserver(measure);
+    resizeObserver.observe(grid);
+    for (const element of summaryTexts) {
+      resizeObserver.observe(element);
+    }
+
+    void document.fonts?.ready.then(measure);
+
+    return () => {
+      isActive = false;
+      resizeObserver.disconnect();
+    };
+  }, [lists]);
 
   async function create() {
     setIsCreating(true);
@@ -267,7 +317,12 @@ export function DashboardClient() {
           </button>
         </section>
       ) : (
-        <section className="grid">
+        <section
+          className={["grid", hasWrappedCardSummary ? "has-wrapped-card-summary" : ""]
+            .filter(Boolean)
+            .join(" ")}
+          ref={listGridRef}
+        >
           {lists.map((list) => {
             const description = list.description.trim();
 
@@ -282,11 +337,19 @@ export function DashboardClient() {
                 </Link>
                 <p className="list-card-item-count">{list.items.length} items</p>
                 <div className="list-card-details list-card-summary">
-                  <h2 className="list-card-title" title={list.title}>
+                  <h2
+                    className="list-card-title"
+                    data-list-card-summary-text
+                    title={list.title}
+                  >
                     {list.title}
                   </h2>
                   {description ? (
-                    <p className="list-card-description" title={description}>
+                    <p
+                      className="list-card-description"
+                      data-list-card-summary-text
+                      title={description}
+                    >
                       {description}
                     </p>
                   ) : null}
