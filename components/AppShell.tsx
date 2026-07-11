@@ -2,6 +2,7 @@ import { Trophy } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { AuthNav } from "./AuthNav";
+import { ThemeToggle } from "./ThemeToggle";
 
 export function AppShell({
   children,
@@ -28,6 +29,7 @@ export function AppShell({
           <span>Tier List Maker</span>
         </Link>
         <nav className="nav-actions">
+          <ThemeToggle />
           <span className="topbar-action-slot" id="topbar-leading-action-slot" />
           {hideDashboard ? null : (
             <Link className="button" href="/dashboard">

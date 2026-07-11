@@ -7,11 +7,13 @@ const TRANSPARENT_IMAGE_PLACEHOLDER =
 
 export async function renderTierListPng(element: HTMLElement) {
   await waitForNextFrame();
+  const exportCard = element.closest<HTMLElement>(".tier-export-card") ?? element;
+  const backgroundColor = getComputedStyle(exportCard).backgroundColor;
 
   return withSuppressedFetchWarnings(() =>
     toPng(element, {
       pixelRatio: 2,
-      backgroundColor: "#ffffff",
+      backgroundColor,
       cacheBust: true,
       imagePlaceholder: TRANSPARENT_IMAGE_PLACEHOLDER,
       onImageErrorHandler: () => undefined,
@@ -61,8 +63,7 @@ async function withSuppressedFetchWarnings<T>(callback: () => Promise<T>) {
     const [message] = args;
     if (
       typeof message === "string" &&
-      (message.startsWith("Failed to fetch resource:") ||
-        message === "Failed to fetch")
+      (message.startsWith("Failed to fetch resource:") || message === "Failed to fetch")
     ) {
       return;
     }

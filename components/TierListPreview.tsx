@@ -1,9 +1,9 @@
 "use client";
 
-import { Tier, TierItem } from "@/lib/tier-list";
-import { getSiteUrl } from "@/lib/site-url";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { DragEvent, RefObject, useLayoutEffect, useRef, useState } from "react";
+import { getSiteUrl } from "@/lib/site-url";
+import { Tier, TierItem } from "@/lib/tier-list";
 
 type Props = {
   title?: string;
@@ -93,12 +93,20 @@ export function TierListPreview({
 
   return (
     <section
-      className={["panel tier-export-card", className].filter(Boolean).join(" ")}
-      style={{ background: "#fff" }}
+      className={[
+        "panel tier-export-card",
+        isExporting ? "is-exporting" : undefined,
+        className,
+      ]
+        .filter(Boolean)
+        .join(" ")}
     >
       <div
         ref={exportRef}
-        className={["panel-pad tier-export-inner", isExporting ? "is-exporting" : undefined]
+        className={[
+          "panel-pad tier-export-inner",
+          isExporting ? "is-exporting" : undefined,
+        ]
           .filter(Boolean)
           .join(" ")}
       >
@@ -131,9 +139,7 @@ export function TierListPreview({
                 </p>
               ) : null}
             </div>
-            {isExporting ? (
-              <div className="marketing-url">{marketingUrl}</div>
-            ) : null}
+            {isExporting ? <div className="marketing-url">{marketingUrl}</div> : null}
             {expandableHeader && headerCanExpand ? (
               <button
                 aria-expanded={isHeaderExpanded}
@@ -228,7 +234,9 @@ function overflowsSingleLine(
 }
 
 function getMarketingUrl() {
-  return getSiteUrl().replace(/^https?:\/\//, "").replace(/\/$/, "");
+  return getSiteUrl()
+    .replace(/^https?:\/\//, "")
+    .replace(/\/$/, "");
 }
 
 function Tile({

@@ -2,6 +2,7 @@ import { Trophy } from "lucide-react";
 import Link from "next/link";
 import { ReactNode } from "react";
 import { NavAuth } from "./NavAuth";
+import { ThemeToggle } from "./ThemeToggle";
 
 export function Shell({ children }: { children: ReactNode }) {
   return (
@@ -14,6 +15,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <span>Tier List Maker</span>
         </Link>
         <nav className="nav-actions">
+          <ThemeToggle />
           <Link className="button" href="/dashboard">
             Dashboard
           </Link>
