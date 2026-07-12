@@ -20,6 +20,7 @@ import {
   ChangeEvent,
   startTransition,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   ViewTransition,
@@ -66,6 +67,7 @@ export function DashboardClient() {
   const [message, setMessage] = useState<string | null>(null);
   const copyStatusTimeoutRef = useRef<number | null>(null);
   const copyImageStatusTimeoutRef = useRef<number | null>(null);
+  const activityGenerationRef = useRef(0);
 
   useEffect(() => {
     try {
@@ -104,14 +106,28 @@ export function DashboardClient() {
     }
   }, [hasLoadedPreferences, isCompact, layout]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    activityGenerationRef.current += 1;
+
     return () => {
+      activityGenerationRef.current += 1;
+
       if (copyStatusTimeoutRef.current !== null) {
         window.clearTimeout(copyStatusTimeoutRef.current);
+        copyStatusTimeoutRef.current = null;
       }
       if (copyImageStatusTimeoutRef.current !== null) {
         window.clearTimeout(copyImageStatusTimeoutRef.current);
+        copyImageStatusTimeoutRef.current = null;
       }
+
+      setIsCreating(false);
+      setIsImporting(false);
+      setExportingImageListId(null);
+      setSharingListId(null);
+      setCopiedListId(null);
+      setCopiedImageListId(null);
+      setMessage(null);
     };
   }, []);
 
@@ -164,12 +180,16 @@ export function DashboardClient() {
   }, [lists, layout]);
 
   async function create() {
+    const activityGeneration = activityGenerationRef.current;
     setIsCreating(true);
     try {
       const id = await createList("New tier list");
+      if (activityGeneration !== activityGenerationRef.current) return;
       router.push(`/lists/${id}`, { transitionTypes: ["nav-forward"] });
     } finally {
-      setIsCreating(false);
+      if (activityGeneration === activityGenerationRef.current) {
+        setIsCreating(false);
+      }
     }
   }
 
@@ -179,6 +199,7 @@ export function DashboardClient() {
   }
 
   async function share(id: string) {
+    const activityGeneration = activityGenerationRef.current;
     setSharingListId(id);
     setCopiedListId(null);
     setMessage(null);
@@ -188,23 +209,31 @@ export function DashboardClient() {
     }
     try {
       const url = await createShareLink(id);
+      if (activityGeneration !== activityGenerationRef.current) return;
       await navigator.clipboard.writeText(url);
+      if (activityGeneration !== activityGenerationRef.current) return;
       setCopiedListId(id);
       copyStatusTimeoutRef.current = window.setTimeout(() => {
         setCopiedListId(null);
         copyStatusTimeoutRef.current = null;
       }, 1800);
     } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "Could not share that tier list.",
-      );
+      if (activityGeneration === activityGenerationRef.current) {
+        setMessage(
+          error instanceof Error ? error.message : "Could not share that tier list.",
+        );
+      }
     } finally {
-      setSharingListId(null);
+      if (activityGeneration === activityGenerationRef.current) {
+        setSharingListId(null);
+      }
     }
   }
 
   async function exportBackup() {
+    const activityGeneration = activityGenerationRef.current;
     const backup = await exportData();
+    if (activityGeneration !== activityGenerationRef.current) return;
     const blob = new Blob([JSON.stringify(backup, null, 2)], {
       type: "application/json",
     });
@@ -223,6 +252,7 @@ export function DashboardClient() {
     const list = lists?.find((candidate) => candidate.id === listId);
     if (!list) return;
 
+    const activityGeneration = activityGenerationRef.current;
     setExportingImageListId(listId);
     setCopiedImageListId(null);
     setMessage(null);
@@ -233,9 +263,11 @@ export function DashboardClient() {
 
     try {
       await waitForNextFrame();
+      if (activityGeneration !== activityGenerationRef.current) return;
       if (!imageExportRef.current) return;
 
       const dataUrl = await renderTierListPng(imageExportRef.current);
+      if (activityGeneration !== activityGenerationRef.current) return;
 
       if (action === "download") {
         downloadPng(dataUrl, `${list.title || "tier-list"}.png`);
@@ -243,21 +275,26 @@ export function DashboardClient() {
       }
 
       await copyPngToClipboard(dataUrl);
+      if (activityGeneration !== activityGenerationRef.current) return;
       setCopiedImageListId(listId);
       copyImageStatusTimeoutRef.current = window.setTimeout(() => {
         setCopiedImageListId(null);
         copyImageStatusTimeoutRef.current = null;
       }, 1800);
     } catch (error) {
-      setMessage(
-        action === "copy"
-          ? error instanceof Error
-            ? error.message
-            : "Could not copy that tier list image."
-          : "Could not export that tier list as an image.",
-      );
+      if (activityGeneration === activityGenerationRef.current) {
+        setMessage(
+          action === "copy"
+            ? error instanceof Error
+              ? error.message
+              : "Could not copy that tier list image."
+            : "Could not export that tier list as an image.",
+        );
+      }
     } finally {
-      setExportingImageListId(null);
+      if (activityGeneration === activityGenerationRef.current) {
+        setExportingImageListId(null);
+      }
     }
   }
 
@@ -266,15 +303,24 @@ export function DashboardClient() {
     event.target.value = "";
     if (!file) return;
 
+    const activityGeneration = activityGenerationRef.current;
     setIsImporting(true);
     setMessage(null);
     try {
       const importedCount = await importData(await file.text());
-      setMessage(`Imported ${importedCount} tier list${importedCount === 1 ? "" : "s"}.`);
+      if (activityGeneration === activityGenerationRef.current) {
+        setMessage(
+          `Imported ${importedCount} tier list${importedCount === 1 ? "" : "s"}.`,
+        );
+      }
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not import that file.");
+      if (activityGeneration === activityGenerationRef.current) {
+        setMessage(error instanceof Error ? error.message : "Could not import that file.");
+      }
     } finally {
-      setIsImporting(false);
+      if (activityGeneration === activityGenerationRef.current) {
+        setIsImporting(false);
+      }
     }
   }
 

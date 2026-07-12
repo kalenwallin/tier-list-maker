@@ -1,9 +1,5 @@
 "use client";
 
-import { createId, moveItem, sortItemsByTier, Tier, TierItem } from "@/lib/tier-list";
-import { useTierList } from "@/lib/use-tier-lists";
-import { StoredTierList } from "@/lib/db";
-import { copyPngToClipboard, downloadPng, renderTierListPng } from "@/lib/image-export";
 import {
   Check,
   Copy,
@@ -16,7 +12,7 @@ import {
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
-import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 import {
   addTransitionType,
   startTransition,
@@ -26,6 +22,11 @@ import {
   useState,
   ViewTransition,
 } from "react";
+import { createPortal } from "react-dom";
+import { StoredTierList } from "@/lib/db";
+import { copyPngToClipboard, downloadPng, renderTierListPng } from "@/lib/image-export";
+import { createId, moveItem, sortItemsByTier, Tier, TierItem } from "@/lib/tier-list";
+import { useTierList } from "@/lib/use-tier-lists";
 import { TierListPreview } from "./TierListPreview";
 
 export function TierListEditor({
@@ -36,6 +37,7 @@ export function TierListEditor({
   previewMode?: boolean;
 }) {
   const { list, syncMode, shareUrl, saveList, createShareLink } = useTierList(id);
+  const router = useRouter();
   const exportRef = useRef<HTMLDivElement>(null);
   const draggedItemId = useRef<string | null>(null);
   const hydratedListId = useRef<string | null>(null);
@@ -56,11 +58,14 @@ export function TierListEditor({
   const [shareStatus, setShareStatus] = useState("Copy link");
   const [copyImageStatus, setCopyImageStatus] = useState("Copy image");
   const [newTier, setNewTier] = useState("");
+  const [topbarLeadingActionSlot, setTopbarLeadingActionSlot] =
+    useState<HTMLElement | null>(null);
   const [topbarActionSlot, setTopbarActionSlot] = useState<HTMLElement | null>(null);
   const sortedItems = useMemo(() => sortItemsByTier(items, tiers), [items, tiers]);
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
+    setTopbarLeadingActionSlot(document.getElementById("topbar-leading-action-slot"));
     setTopbarActionSlot(document.getElementById("topbar-action-slot"));
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -184,6 +189,14 @@ export function TierListEditor({
     applyMode();
   }
 
+  function navigateToDashboard() {
+    setRouteMorphName(`tier-list-${id}`);
+
+    window.requestAnimationFrame(() => {
+      router.push("/dashboard", { transitionTypes: ["nav-back"] });
+    });
+  }
+
   function addItem() {
     startTransition(() => {
       setItems((current) => [
@@ -276,6 +289,14 @@ export function TierListEditor({
 
   return (
     <>
+      {topbarLeadingActionSlot
+        ? createPortal(
+            <button className="button" onClick={navigateToDashboard} type="button">
+              Dashboard
+            </button>,
+            topbarLeadingActionSlot,
+          )
+        : null}
       {topbarActionSlot
         ? createPortal(
             <>
@@ -484,7 +505,7 @@ export function TierListEditor({
           </ViewTransition>
           {isPreviewMode ? null : (
             <p className="muted">
-              Drag items into rows; every edit is saved automatically
+              Drag items between rows and the item tray; every edit is saved automatically
               {syncMode === "cloud" ? " to cloud sync." : " in this browser."}
             </p>
           )}

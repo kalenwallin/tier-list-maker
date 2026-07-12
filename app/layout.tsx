@@ -1,5 +1,6 @@
 import { AuthKitProvider } from "@workos-inc/authkit-nextjs/components";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
 import { getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
@@ -33,7 +34,15 @@ export default function RootLayout({
       </head>
       <body>
         <AuthKitProvider>
-          <ConvexClientProvider>{children}</ConvexClientProvider>
+          <Suspense
+            fallback={
+              <main className="page-shell">
+                <section className="panel panel-pad">Loading tier lists</section>
+              </main>
+            }
+          >
+            <ConvexClientProvider>{children}</ConvexClientProvider>
+          </Suspense>
         </AuthKitProvider>
       </body>
     </html>

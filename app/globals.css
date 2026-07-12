@@ -117,9 +117,7 @@
 
 ::view-transition-new(.nav-forward) {
   --slide-offset: 60px;
-  animation:
-    var(--duration-enter) ease-out var(--duration-exit) both fade,
-    var(--duration-move) ease-in-out both slide;
+  animation: var(--duration-move) ease-in-out both slide;
 }
 
 ::view-transition-old(.nav-back) {
@@ -146,6 +144,14 @@
 
 ::view-transition-group(.mode-morph) {
   animation-duration: var(--duration-mode-change);
+}
+
+::view-transition-old(.mode-morph) {
+  display: none;
+}
+
+::view-transition-new(.mode-morph) {
+  animation: none;
 }
 
 ::view-transition-group(.item-morph) {
@@ -801,6 +807,26 @@ button:disabled {
   border-radius: 8px;
   background: var(--control);
   padding: var(--item-tray-padding, 12px);
+}
+
+.item-tray.drop-target {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--drop-a) 0,
+    var(--drop-a) 12px,
+    var(--drop-b) 12px,
+    var(--drop-b) 24px
+  );
+}
+
+.item-tray-empty {
+  display: grid;
+  width: 100%;
+  place-items: center;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-align: center;
 }
 
 .item-edge-drop-target {

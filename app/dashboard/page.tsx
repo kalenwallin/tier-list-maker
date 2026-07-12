@@ -4,7 +4,7 @@ import { DirectionalTransition } from "@/components/DirectionalTransition";
 
 export default function DashboardPage() {
   return (
-    <DirectionalTransition>
+    <DirectionalTransition animateBackEntry={false}>
       <AppShell hideDashboard>
         <DashboardClient />
       </AppShell>

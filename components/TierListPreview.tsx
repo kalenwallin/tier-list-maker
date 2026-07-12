@@ -206,9 +206,10 @@ export function TierListPreview({
           ))}
         </div>
       </div>
-      {unranked.length > 0 ? (
+      {draggable || unranked.length > 0 ? (
         <div className="panel-pad item-tray-pad">
           <div
+            aria-label="Unranked item tray"
             className="item-tray"
             data-export-exclude="true"
             onDragOver={draggable ? allowDrop : undefined}
@@ -222,6 +223,9 @@ export function TierListPreview({
                 : undefined
             }
           >
+            {unranked.length === 0 ? (
+              <span className="item-tray-empty">Drop items here to unrank them</span>
+            ) : null}
             {unranked.map((item) => (
               <AnimatedTile
                 draggable={draggable}
