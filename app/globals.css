@@ -146,12 +146,27 @@
   animation-duration: var(--duration-mode-change);
 }
 
+::view-transition-group(.mode-frame-morph) {
+  animation-duration: var(--duration-mode-change);
+  height: var(--mode-frame-height);
+}
+
 ::view-transition-old(.mode-morph) {
+  display: none;
+}
+
+::view-transition-old(.mode-frame-morph) {
   display: none;
 }
 
 ::view-transition-new(.mode-morph) {
   animation: none;
+}
+
+::view-transition-new(.mode-frame-morph) {
+  animation: none;
+  height: 100%;
+  object-fit: fill;
 }
 
 ::view-transition-group(.item-morph) {

@@ -39,6 +39,7 @@ export function TierListEditor({
   const { list, syncMode, shareUrl, saveList, createShareLink } = useTierList(id);
   const router = useRouter();
   const exportRef = useRef<HTMLDivElement>(null);
+  const modeTransitionFrameRef = useRef<HTMLDivElement>(null);
   const draggedItemId = useRef<string | null>(null);
   const hydratedListId = useRef<string | null>(null);
   const lastSavedSnapshot = useRef("");
@@ -168,6 +169,14 @@ export function TierListEditor({
 
   function changeMode(nextPreviewMode: boolean) {
     const applyMode = () => {
+      const frameHeight = modeTransitionFrameRef.current?.getBoundingClientRect().height;
+      if (frameHeight) {
+        document.documentElement.style.setProperty(
+          "--mode-frame-height",
+          `${frameHeight}px`,
+        );
+      }
+
       startTransition(() => {
         addTransitionType("mode-change");
         setIsPreviewMode(nextPreviewMode);
@@ -483,9 +492,9 @@ export function TierListEditor({
         <div className="preview-column" key="tier-list-preview">
           <ViewTransition
             default="none"
-            update={{ "mode-change": "mode-morph", default: "none" }}
+            update={{ "mode-change": "mode-frame-morph", default: "none" }}
           >
-            <div className="tier-list-transition-frame">
+            <div className="tier-list-transition-frame" ref={modeTransitionFrameRef}>
               <TierListPreview
                 draggable={!isPreviewMode}
                 expandableHeader
