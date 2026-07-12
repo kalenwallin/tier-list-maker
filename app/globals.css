@@ -683,6 +683,90 @@ button:disabled {
   background: var(--panel);
   padding: 16px;
   box-shadow: 5px 5px 0 var(--raised-shadow);
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.list-card:hover {
+  transform: translate(1px, 1px);
+  box-shadow: 4px 4px 0 var(--raised-shadow);
+}
+
+.new-list-card {
+  display: grid;
+  min-height: 180px;
+  place-content: center;
+  place-items: center;
+  gap: 14px;
+  border: 2px dashed var(--border);
+  border-radius: 8px;
+  background: var(--soft-panel);
+  color: var(--soft-panel-foreground);
+  padding: 24px;
+  box-shadow: 5px 5px 0 var(--raised-shadow);
+  text-align: center;
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    background 140ms ease,
+    border-color 140ms ease;
+}
+
+.new-list-card:hover {
+  transform: translate(1px, 1px);
+  box-shadow: 4px 4px 0 var(--raised-shadow);
+  border-color: var(--accent-dark);
+  background: var(--drop-b);
+}
+
+.new-list-card:disabled:hover {
+  transform: none;
+  box-shadow: 5px 5px 0 var(--raised-shadow);
+}
+
+.new-list-card-icon {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  background: var(--control);
+  color: var(--control-foreground);
+  box-shadow: 3px 3px 0 var(--raised-shadow);
+}
+
+.new-list-card-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.new-list-card-copy strong {
+  font-size: 1.05rem;
+}
+
+.new-list-card-copy span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.grid.is-compact .new-list-card {
+  min-height: 0;
+}
+
+.grid.is-list-layout .new-list-card {
+  min-height: 0;
+  grid-template-columns: auto minmax(0, 1fr);
+  place-content: initial;
+  justify-items: start;
+  padding: 16px;
+  text-align: left;
+}
+
+.grid.is-list-layout .new-list-card-icon {
+  width: 42px;
+  height: 42px;
 }
 
 .list-card-preview-link {
