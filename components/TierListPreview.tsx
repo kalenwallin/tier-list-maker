@@ -259,7 +259,7 @@ function AnimatedTile({
       exit="scale-out"
       name={`tier-item-${transitionNamespace}-${item.id}`}
       share="item-morph"
-      update="auto"
+      update={{ "mode-change": "mode-morph", default: "auto" }}
     >
       <div className="tile-position">
         <ItemEdgeDropTarget draggable={draggable} onDrop={onDrop} />

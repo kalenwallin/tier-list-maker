@@ -2,6 +2,7 @@
   --duration-exit: 150ms;
   --duration-enter: 210ms;
   --duration-item-move: 220ms;
+  --duration-mode-change: 320ms;
   --duration-move: 400ms;
   --background: #f7f7f2;
   --brand-outline: #111111;
@@ -143,6 +144,10 @@
   animation-name: via-blur;
 }
 
+::view-transition-group(.mode-morph) {
+  animation-duration: var(--duration-mode-change);
+}
+
 ::view-transition-group(.item-morph) {
   animation-duration: var(--duration-item-move);
 }
@@ -204,6 +209,14 @@
 ::view-transition-group(persistent-nav) {
   animation: none;
   z-index: 100;
+}
+
+::view-transition-old(persistent-nav) {
+  display: none;
+}
+
+::view-transition-new(persistent-nav) {
+  animation: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1241,6 +1254,10 @@ button:disabled {
 }
 
 .preview-column {
+  min-width: 0;
+}
+
+.tier-list-transition-frame {
   min-width: 0;
 }
 

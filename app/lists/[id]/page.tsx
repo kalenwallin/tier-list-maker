@@ -26,7 +26,7 @@ export default async function ListEditorPage({
   return (
     <DirectionalTransition>
       <AppShell hideSignedOutActions hideSignOut>
-        <TierListEditor id={id} previewMode={mode === "preview"} />
+        <TierListEditor id={id} key={id} previewMode={mode === "preview"} />
       </AppShell>
     </DirectionalTransition>
   );
