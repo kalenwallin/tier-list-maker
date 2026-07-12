@@ -668,6 +668,32 @@ button:disabled {
   color: var(--panel);
 }
 
+.layout-switcher .layout-button[aria-pressed="true"] {
+  border-color: var(--primary-outline);
+  background: var(--accent);
+  color: #061b14;
+}
+
+.compact-button,
+.compact-button[aria-pressed="true"] {
+  border-color: var(--primary-outline);
+  background: var(--accent);
+  color: #061b14;
+  box-shadow: 3px 3px 0 var(--primary-outline);
+}
+
+.compact-button[aria-pressed="true"] {
+  box-shadow: 3px 3px 0 var(--primary-outline);
+}
+
+.compact-button:hover {
+  box-shadow: 2px 2px 0 var(--primary-outline);
+}
+
+.compact-button[aria-pressed="true"]:hover {
+  box-shadow: 2px 2px 0 var(--primary-outline);
+}
+
 .layout-switcher .layout-button:hover {
   transform: none;
   box-shadow: none;
