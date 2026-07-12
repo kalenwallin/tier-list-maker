@@ -1,6 +1,12 @@
 "use client";
 
-import { createId, sortItemsByTier, Tier, TierItem } from "@/lib/tier-list";
+import {
+  createId,
+  moveItem,
+  sortItemsByTier,
+  Tier,
+  TierItem,
+} from "@/lib/tier-list";
 import { useTierList } from "@/lib/use-tier-lists";
 import { StoredTierList } from "@/lib/db";
 import {
@@ -194,11 +200,15 @@ export function TierListEditor({
     setNewTier("");
   }
 
-  function dropItem(tierId?: string) {
+  function dropItem(
+    tierId?: string,
+    targetItemId?: string,
+    placement?: "before" | "after",
+  ) {
     const itemId = draggedItemId.current;
     if (!itemId) return;
     setItems((current) =>
-      current.map((item) => (item.id === itemId ? { ...item, tierId } : item)),
+      moveItem(current, itemId, tierId, targetItemId, placement),
     );
     draggedItemId.current = null;
   }

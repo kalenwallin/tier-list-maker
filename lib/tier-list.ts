@@ -44,6 +44,35 @@ export function sortItemsByTier(items: TierItem[], tiers: Tier[]) {
     .map(({ item }) => item);
 }
 
+export function moveItem(
+  items: TierItem[],
+  itemId: string,
+  tierId?: string,
+  targetItemId?: string,
+  placement: "before" | "after" = "after",
+) {
+  const draggedItem = items.find((item) => item.id === itemId);
+  if (!draggedItem) return items;
+
+  const remainingItems = items.filter((item) => item.id !== itemId);
+  const movedItem = { ...draggedItem, tierId };
+
+  if (targetItemId && targetItemId !== itemId) {
+    const targetIndex = remainingItems.findIndex((item) => item.id === targetItemId);
+    if (targetIndex >= 0) {
+      const insertionIndex = placement === "before" ? targetIndex : targetIndex + 1;
+      remainingItems.splice(insertionIndex, 0, movedItem);
+      return remainingItems;
+    }
+  }
+
+  const lastTierItemIndex = remainingItems.findLastIndex(
+    (item) => item.tierId === tierId,
+  );
+  remainingItems.splice(lastTierItemIndex + 1, 0, movedItem);
+  return remainingItems;
+}
+
 export function createId(prefix: string) {
   return `${prefix}-${crypto.randomUUID()}`;
 }

@@ -12,7 +12,11 @@ type Props = {
   items: TierItem[];
   className?: string;
   draggable?: boolean;
-  onDropItem?: (tierId?: string) => void;
+  onDropItem?: (
+    tierId?: string,
+    targetItemId?: string,
+    placement?: "before" | "after",
+  ) => void;
   onDragStart?: (itemId: string) => void;
   exportRef?: RefObject<HTMLDivElement | null>;
   expandableHeader?: boolean;
@@ -176,12 +180,17 @@ export function TierListPreview({
                 {items
                   .filter((item) => item.tierId === tier.id)
                   .map((item) => (
-                    <Tile
-                      draggable={draggable}
-                      item={item}
-                      key={item.id}
-                      onDragStart={onDragStart}
-                    />
+                    <div className="tile-position" key={item.id}>
+                      <ItemEdgeDropTarget
+                        draggable={draggable}
+                        onDrop={() => onDropItem?.(tier.id, item.id, "before")}
+                      />
+                      <Tile
+                        draggable={draggable}
+                        item={item}
+                        onDragStart={onDragStart}
+                      />
+                    </div>
                   ))}
               </div>
             </div>
@@ -205,17 +214,51 @@ export function TierListPreview({
             }
           >
             {unranked.map((item) => (
-              <Tile
-                draggable={draggable}
-                item={item}
-                key={item.id}
-                onDragStart={onDragStart}
-              />
+              <div className="tile-position" key={item.id}>
+                <ItemEdgeDropTarget
+                  draggable={draggable}
+                  onDrop={() => onDropItem?.(undefined, item.id, "before")}
+                />
+                <Tile
+                  draggable={draggable}
+                  item={item}
+                  onDragStart={onDragStart}
+                />
+              </div>
             ))}
           </div>
         </div>
       ) : null}
     </section>
+  );
+}
+
+function ItemEdgeDropTarget({
+  draggable,
+  onDrop,
+}: {
+  draggable: boolean;
+  onDrop: () => void;
+}) {
+  if (!draggable) return null;
+
+  return (
+    <div
+      aria-hidden="true"
+      className="item-edge-drop-target"
+      onDragLeave={(event) => event.currentTarget.classList.remove("drop-target")}
+      onDragOver={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        event.currentTarget.classList.add("drop-target");
+      }}
+      onDrop={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        event.currentTarget.classList.remove("drop-target");
+        onDrop();
+      }}
+    />
   );
 }
 
@@ -252,7 +295,11 @@ function Tile({
     <article
       className="tile"
       draggable={draggable}
-      onDragStart={() => onDragStart?.(item.id)}
+      onDragStart={(event) => {
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", item.id);
+        onDragStart?.(item.id);
+      }}
       title={item.label}
     >
       <div className="tile-media">
