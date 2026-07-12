@@ -19,9 +19,7 @@ export function SharedTierListView({ shareId }: { shareId: string }) {
   const { user, loading: authLoading } = useAuth();
   const [topbarLeadingActionSlot, setTopbarLeadingActionSlot] =
     useState<HTMLElement | null>(null);
-  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">(
-    "idle",
-  );
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">("idle");
   const list = useQuery(api.tierLists.getShared, { shareId }) as
     | SharedTierList
     | null
@@ -61,7 +59,7 @@ export function SharedTierListView({ shareId }: { shareId: string }) {
       <section className="panel panel-pad">
         <h1>Shared tier list not found</h1>
         <p className="muted">The link may have been removed or copied incorrectly.</p>
-        <Link className="button" href="/">
+        <Link className="button" href="/" transitionTypes={["nav-back"]}>
           Make your own
         </Link>
       </section>
@@ -74,7 +72,11 @@ export function SharedTierListView({ shareId }: { shareId: string }) {
         ? createPortal(
             <>
               {canEdit ? (
-                <Link className="button" href={`/lists/${list._id}`}>
+                <Link
+                  className="button"
+                  href={`/lists/${list._id}`}
+                  transitionTypes={["nav-back"]}
+                >
                   <Pencil size={16} /> Edit
                 </Link>
               ) : null}
@@ -99,9 +101,10 @@ export function SharedTierListView({ shareId }: { shareId: string }) {
         items={list.items}
         tiers={list.tiers}
         title={list.title}
+        viewTransitionName={`tier-list-${list._id}`}
       />
       <div className="nav-actions shared-actions">
-        <Link className="button primary" href="/dashboard">
+        <Link className="button primary" href="/dashboard" transitionTypes={["nav-back"]}>
           Make your own
         </Link>
       </div>

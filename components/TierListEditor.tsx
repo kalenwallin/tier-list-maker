@@ -1,19 +1,9 @@
 "use client";
 
-import {
-  createId,
-  moveItem,
-  sortItemsByTier,
-  Tier,
-  TierItem,
-} from "@/lib/tier-list";
+import { createId, moveItem, sortItemsByTier, Tier, TierItem } from "@/lib/tier-list";
 import { useTierList } from "@/lib/use-tier-lists";
 import { StoredTierList } from "@/lib/db";
-import {
-  copyPngToClipboard,
-  downloadPng,
-  renderTierListPng,
-} from "@/lib/image-export";
+import { copyPngToClipboard, downloadPng, renderTierListPng } from "@/lib/image-export";
 import {
   Check,
   Copy,
@@ -26,8 +16,9 @@ import {
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { TierListPreview } from "./TierListPreview";
 
 export function TierListEditor({
@@ -38,6 +29,7 @@ export function TierListEditor({
   previewMode?: boolean;
 }) {
   const { list, syncMode, shareUrl, saveList, createShareLink } = useTierList(id);
+  const router = useRouter();
   const exportRef = useRef<HTMLDivElement>(null);
   const draggedItemId = useRef<string | null>(null);
   const hydratedListId = useRef<string | null>(null);
@@ -55,9 +47,7 @@ export function TierListEditor({
   const [shareStatus, setShareStatus] = useState("Copy link");
   const [copyImageStatus, setCopyImageStatus] = useState("Copy image");
   const [newTier, setNewTier] = useState("");
-  const [topbarActionSlot, setTopbarActionSlot] = useState<HTMLElement | null>(
-    null,
-  );
+  const [topbarActionSlot, setTopbarActionSlot] = useState<HTMLElement | null>(null);
   const sortedItems = useMemo(() => sortItemsByTier(items, tiers), [items, tiers]);
 
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -169,7 +159,10 @@ export function TierListEditor({
       setSaveStatus("Saved to cloud");
 
       const url = shareUrl ?? (await createShareLink());
-      window.location.assign(url);
+      const destination = new URL(url, window.location.origin);
+      router.push(`${destination.pathname}${destination.search}${destination.hash}`, {
+        transitionTypes: ["nav-forward"],
+      });
     } catch {
       setSaveStatus("Could not open preview");
       window.setTimeout(() => setSaveStatus("Saved to cloud"), 1800);
@@ -180,23 +173,31 @@ export function TierListEditor({
   }
 
   function addItem() {
-    setItems((current) => [
-      ...current,
-      {
-        id: createId("item"),
-        label: "",
-      },
-    ]);
+    startTransition(() => {
+      setItems((current) => [
+        ...current,
+        {
+          id: createId("item"),
+          label: "",
+        },
+      ]);
+    });
   }
 
   function addTier() {
     const name = newTier.trim();
     if (!name) return;
     const colors = ["#61dafb", "#f78c6b", "#82d173", "#c792ea", "#ffcb6b"];
-    setTiers((current) => [
-      ...current,
-      { id: createId("tier"), name, color: colors[current.length % colors.length] },
-    ]);
+    startTransition(() => {
+      setTiers((current) => [
+        ...current,
+        {
+          id: createId("tier"),
+          name,
+          color: colors[current.length % colors.length],
+        },
+      ]);
+    });
     setNewTier("");
   }
 
@@ -207,9 +208,9 @@ export function TierListEditor({
   ) {
     const itemId = draggedItemId.current;
     if (!itemId) return;
-    setItems((current) =>
-      moveItem(current, itemId, tierId, targetItemId, placement),
-    );
+    startTransition(() => {
+      setItems((current) => moveItem(current, itemId, tierId, targetItemId, placement));
+    });
     draggedItemId.current = null;
   }
 
@@ -220,16 +221,20 @@ export function TierListEditor({
   }
 
   function removeTier(tierId: string) {
-    setTiers((current) => current.filter((tier) => tier.id !== tierId));
-    setItems((current) =>
-      current.map((item) =>
-        item.tierId === tierId ? { ...item, tierId: undefined } : item,
-      ),
-    );
+    startTransition(() => {
+      setTiers((current) => current.filter((tier) => tier.id !== tierId));
+      setItems((current) =>
+        current.map((item) =>
+          item.tierId === tierId ? { ...item, tierId: undefined } : item,
+        ),
+      );
+    });
   }
 
   function removeItem(itemId: string) {
-    setItems((current) => current.filter((item) => item.id !== itemId));
+    startTransition(() => {
+      setItems((current) => current.filter((item) => item.id !== itemId));
+    });
   }
 
   if (list === undefined) {
@@ -244,7 +249,7 @@ export function TierListEditor({
     return (
       <section className="panel panel-pad">
         <h1>Tier list not found</h1>
-        <Link className="button" href="/dashboard">
+        <Link className="button" href="/dashboard" transitionTypes={["nav-back"]}>
           Back to dashboard
         </Link>
       </section>
@@ -263,7 +268,11 @@ export function TierListEditor({
         {topbarActionSlot
           ? createPortal(
               <>
-                <Link className="button" href={`/lists/${id}`}>
+                <Link
+                  className="button"
+                  href={`/lists/${id}`}
+                  transitionTypes={["nav-back"]}
+                >
                   <Pencil size={16} /> Edit
                 </Link>
                 {syncMode === "cloud" ? (
@@ -272,11 +281,7 @@ export function TierListEditor({
                     onClick={() => void shareList()}
                     type="button"
                   >
-                    {shareStatus === "Copied" ? (
-                      <Check size={16} />
-                    ) : (
-                      <Copy size={16} />
-                    )}
+                    {shareStatus === "Copied" ? <Check size={16} /> : <Copy size={16} />}
                     {shareStatus}
                   </button>
                 ) : null}
@@ -314,6 +319,7 @@ export function TierListEditor({
           items={previewItems}
           tiers={previewTiers}
           title={previewTitle}
+          viewTransitionName={`tier-list-${id}`}
         />
       </div>
     );
@@ -380,121 +386,128 @@ export function TierListEditor({
         : null}
       <div className="split">
         <aside className="panel panel-pad editor-controls">
-        <div className="toolbar">
-          <h1 style={{ margin: 0 }}>Edit</h1>
-          <span className="save-status">
-            {isSaving ? <Loader2 size={16} /> : <Check size={16} />}
-            {saveStatus}
-          </span>
-        </div>
+          <div className="toolbar">
+            <h1 style={{ margin: 0 }}>Edit</h1>
+            <span className="save-status">
+              {isSaving ? <Loader2 size={16} /> : <Check size={16} />}
+              {saveStatus}
+            </span>
+          </div>
 
-        <label className="form-row">
-          <span className="label">Title</span>
-          <input className="input" value={title} onChange={(event) => setTitle(event.target.value)} />
-        </label>
-        <label className="form-row">
-          <span className="label">Description</span>
-          <textarea
-            className="textarea"
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-          />
-        </label>
+          <label className="form-row">
+            <span className="label">Title</span>
+            <input
+              className="input"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+            />
+          </label>
+          <label className="form-row">
+            <span className="label">Description</span>
+            <textarea
+              className="textarea"
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+            />
+          </label>
 
-        <div className="form-row">
-          <span className="label">Items</span>
-          <div className="small-list">
-            {sortedItems.map((item) => (
-              <div className="item-edit-row" key={item.id}>
-                <input
-                  className="input"
-                  aria-label={`${item.label} label`}
-                  placeholder="Item label"
-                  value={item.label}
-                  onChange={(event) =>
-                    setItems((current) =>
-                      current.map((candidate) =>
-                        candidate.id === item.id
-                          ? { ...candidate, label: event.target.value }
-                          : candidate,
-                      ),
-                    )
-                  }
-                />
-                <div className="inline-row">
+          <div className="form-row">
+            <span className="label">Items</span>
+            <div className="small-list">
+              {sortedItems.map((item) => (
+                <div className="item-edit-row" key={item.id}>
                   <input
                     className="input"
-                    aria-label={`${item.label} image URL`}
-                    placeholder="Image URL"
-                    value={item.imageUrl ?? ""}
+                    aria-label={`${item.label} label`}
+                    placeholder="Item label"
+                    value={item.label}
                     onChange={(event) =>
                       setItems((current) =>
                         current.map((candidate) =>
                           candidate.id === item.id
-                            ? {
-                                ...candidate,
-                                imageUrl: event.target.value.trim() || undefined,
-                              }
+                            ? { ...candidate, label: event.target.value }
                             : candidate,
                         ),
                       )
                     }
                   />
+                  <div className="inline-row">
+                    <input
+                      className="input"
+                      aria-label={`${item.label} image URL`}
+                      placeholder="Image URL"
+                      value={item.imageUrl ?? ""}
+                      onChange={(event) =>
+                        setItems((current) =>
+                          current.map((candidate) =>
+                            candidate.id === item.id
+                              ? {
+                                  ...candidate,
+                                  imageUrl: event.target.value.trim() || undefined,
+                                }
+                              : candidate,
+                          ),
+                        )
+                      }
+                    />
+                    <button
+                      className="button icon"
+                      onClick={() => removeItem(item.id)}
+                      type="button"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button className="button" onClick={addItem} type="button">
+              <Plus size={16} /> Add item
+            </button>
+          </div>
+
+          <div className="form-row">
+            <span className="label">Tiers</span>
+            <div className="small-list">
+              {tiers.map((tier) => (
+                <div className="inline-row" key={tier.id}>
+                  <input
+                    className="input"
+                    value={tier.name}
+                    onChange={(event) =>
+                      updateTier(tier.id, { name: event.target.value })
+                    }
+                  />
+                  <input
+                    aria-label={`${tier.name} color`}
+                    type="color"
+                    value={tier.color}
+                    onChange={(event) =>
+                      updateTier(tier.id, { color: event.target.value })
+                    }
+                  />
                   <button
                     className="button icon"
-                    onClick={() => removeItem(item.id)}
+                    onClick={() => removeTier(tier.id)}
                     type="button"
                   >
                     <Trash2 size={16} />
                   </button>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+            <div className="inline-row">
+              <input
+                className="input"
+                placeholder="New tier"
+                value={newTier}
+                onChange={(event) => setNewTier(event.target.value)}
+              />
+              <button className="button icon" onClick={addTier} type="button">
+                <Plus size={16} />
+              </button>
+            </div>
           </div>
-          <button className="button" onClick={addItem} type="button">
-            <Plus size={16} /> Add item
-          </button>
-        </div>
-
-        <div className="form-row">
-          <span className="label">Tiers</span>
-          <div className="small-list">
-            {tiers.map((tier) => (
-              <div className="inline-row" key={tier.id}>
-                <input
-                  className="input"
-                  value={tier.name}
-                  onChange={(event) => updateTier(tier.id, { name: event.target.value })}
-                />
-                <input
-                  aria-label={`${tier.name} color`}
-                  type="color"
-                  value={tier.color}
-                  onChange={(event) => updateTier(tier.id, { color: event.target.value })}
-                />
-                <button
-                  className="button icon"
-                  onClick={() => removeTier(tier.id)}
-                  type="button"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            ))}
-          </div>
-          <div className="inline-row">
-            <input
-              className="input"
-              placeholder="New tier"
-              value={newTier}
-              onChange={(event) => setNewTier(event.target.value)}
-            />
-            <button className="button icon" onClick={addTier} type="button">
-              <Plus size={16} />
-            </button>
-          </div>
-        </div>
-
         </aside>
 
         <div className="preview-column">

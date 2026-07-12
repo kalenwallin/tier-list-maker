@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/AppShell";
+import { DirectionalTransition } from "@/components/DirectionalTransition";
 import { SharedTierListView } from "@/components/SharedTierListView";
 import {
   getShareDescription,
@@ -54,13 +55,13 @@ export async function generateMetadata({
   };
 }
 
-export default async function SharedTierListPage({
-  params,
-}: SharedTierListPageProps) {
+export default async function SharedTierListPage({ params }: SharedTierListPageProps) {
   const { shareId } = await params;
   return (
-    <AppShell hideSignOut>
-      <SharedTierListView shareId={shareId} />
-    </AppShell>
+    <DirectionalTransition>
+      <AppShell hideSignOut>
+        <SharedTierListView shareId={shareId} />
+      </AppShell>
+    </DirectionalTransition>
   );
 }

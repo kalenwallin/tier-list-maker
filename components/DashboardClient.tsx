@@ -16,7 +16,14 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChangeEvent, useEffect, useRef, useState } from "react";
+import {
+  ChangeEvent,
+  startTransition,
+  useEffect,
+  useRef,
+  useState,
+  ViewTransition,
+} from "react";
 import {
   copyPngToClipboard,
   downloadPng,
@@ -25,6 +32,10 @@ import {
 } from "@/lib/image-export";
 import { useTierLists } from "@/lib/use-tier-lists";
 import { TierListPreview } from "./TierListPreview";
+
+const DASHBOARD_PREFERENCES_KEY = "tier-list-maker-dashboard-preferences-v1";
+
+type DashboardLayout = "cards" | "list";
 
 export function DashboardClient() {
   const {
@@ -44,8 +55,9 @@ export function DashboardClient() {
   const listGridRef = useRef<HTMLElement>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
-  const [layout, setLayout] = useState<"cards" | "list">("cards");
+  const [layout, setLayout] = useState<DashboardLayout>("cards");
   const [isCompact, setIsCompact] = useState(false);
+  const [hasLoadedPreferences, setHasLoadedPreferences] = useState(false);
   const [hasWrappedCardSummary, setHasWrappedCardSummary] = useState(false);
   const [exportingImageListId, setExportingImageListId] = useState<string | null>(null);
   const [sharingListId, setSharingListId] = useState<string | null>(null);
@@ -54,6 +66,43 @@ export function DashboardClient() {
   const [message, setMessage] = useState<string | null>(null);
   const copyStatusTimeoutRef = useRef<number | null>(null);
   const copyImageStatusTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    try {
+      const storedPreferences = window.localStorage.getItem(DASHBOARD_PREFERENCES_KEY);
+
+      if (storedPreferences) {
+        const preferences = JSON.parse(storedPreferences) as {
+          layout?: unknown;
+          isCompact?: unknown;
+        };
+
+        if (preferences.layout === "cards" || preferences.layout === "list") {
+          setLayout(preferences.layout);
+        }
+        if (typeof preferences.isCompact === "boolean") {
+          setIsCompact(preferences.isCompact);
+        }
+      }
+    } catch {
+      // Keep the defaults when storage is unavailable or malformed.
+    }
+
+    setHasLoadedPreferences(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hasLoadedPreferences) return;
+
+    try {
+      window.localStorage.setItem(
+        DASHBOARD_PREFERENCES_KEY,
+        JSON.stringify({ layout, isCompact }),
+      );
+    } catch {
+      // The dashboard remains usable when storage is unavailable.
+    }
+  }, [hasLoadedPreferences, isCompact, layout]);
 
   useEffect(() => {
     return () => {
@@ -118,7 +167,7 @@ export function DashboardClient() {
     setIsCreating(true);
     try {
       const id = await createList("New tier list");
-      router.push(`/lists/${id}`);
+      router.push(`/lists/${id}`, { transitionTypes: ["nav-forward"] });
     } finally {
       setIsCreating(false);
     }
@@ -320,7 +369,7 @@ export function DashboardClient() {
               <button
                 aria-pressed={layout === "cards"}
                 className="button layout-button"
-                onClick={() => setLayout("cards")}
+                onClick={() => startTransition(() => setLayout("cards"))}
                 type="button"
               >
                 <LayoutGrid size={16} /> Cards
@@ -328,7 +377,7 @@ export function DashboardClient() {
               <button
                 aria-pressed={layout === "list"}
                 className="button layout-button"
-                onClick={() => setLayout("list")}
+                onClick={() => startTransition(() => setLayout("list"))}
                 type="button"
               >
                 <List size={16} /> List
@@ -337,7 +386,7 @@ export function DashboardClient() {
             <button
               aria-pressed={isCompact}
               className="button compact-button"
-              onClick={() => setIsCompact((current) => !current)}
+              onClick={() => startTransition(() => setIsCompact((current) => !current))}
               type="button"
             >
               <Minimize2 size={16} /> Compact
@@ -359,163 +408,178 @@ export function DashboardClient() {
               const unplacedItems = list.items.filter((item) => !item.tierId);
 
               return (
-                <article className="list-card" key={list.id}>
-                  <Link
-                    aria-label={`Open preview for ${list.title}`}
-                    className="list-card-preview-link"
-                    href={`/lists/${list.id}?mode=preview`}
-                  >
-                    <span className="visually-hidden">Open preview</span>
-                  </Link>
-                  <p className="list-card-item-count">{list.items.length} items</p>
-                  <div className="list-card-details list-card-summary">
-                    <h2
-                      className={[
-                        "list-card-title",
-                        list.title.trim().length > 20 ? "is-long" : "",
-                      ]
-                        .filter(Boolean)
-                        .join(" ")}
-                      data-list-card-summary-text
-                      title={list.title}
+                <ViewTransition
+                  default="none"
+                  enter="scale-in"
+                  exit="scale-out"
+                  key={list.id}
+                  update="auto"
+                >
+                  <article className="list-card">
+                    <Link
+                      aria-label={`Open preview for ${list.title}`}
+                      className="list-card-preview-link"
+                      href={`/lists/${list.id}?mode=preview`}
+                      transitionTypes={["nav-forward"]}
                     >
-                      {list.title}
-                    </h2>
-                    {description ? (
-                      <p
-                        className="list-card-description"
+                      <span className="visually-hidden">Open preview</span>
+                    </Link>
+                    <p className="list-card-item-count">{list.items.length} items</p>
+                    <div className="list-card-details list-card-summary">
+                      <h2
+                        className={[
+                          "list-card-title",
+                          list.title.trim().length > 20 ? "is-long" : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" ")}
                         data-list-card-summary-text
-                        title={description}
+                        title={list.title}
                       >
-                        {description}
-                      </p>
-                    ) : null}
-                  </div>
-                  <div
-                    aria-hidden="true"
-                    className="dashboard-tier-preview list-card-summary"
-                  >
-                    {list.tiers.map((tier) => (
-                      <div className="dashboard-tier-preview-row" key={tier.id}>
-                        <div
-                          className="dashboard-tier-preview-label"
-                          style={{ background: tier.color }}
+                        {list.title}
+                      </h2>
+                      {description ? (
+                        <p
+                          className="list-card-description"
+                          data-list-card-summary-text
+                          title={description}
                         >
-                          {tier.name}
-                        </div>
-                        <div className="dashboard-tier-preview-items">
-                          {list.items
-                            .filter((item) => item.tierId === tier.id)
-                            .map((item) => (
-                              <div
-                                className="dashboard-tier-preview-item"
-                                key={item.id}
-                                title={item.label}
-                              >
-                                {item.imageUrl ? (
-                                  // eslint-disable-next-line @next/next/no-img-element
-                                  <img alt="" src={item.imageUrl} />
-                                ) : (
-                                  item.label.slice(0, 1).toUpperCase()
-                                )}
-                              </div>
-                            ))}
-                        </div>
-                      </div>
-                    ))}
-                    <div className="dashboard-tier-preview-tray">
-                      {unplacedItems.map((item) => (
-                        <div
-                          className="dashboard-tier-preview-item"
-                          key={item.id}
-                          title={item.label}
-                        >
-                          {item.imageUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img alt="" src={item.imageUrl} />
-                          ) : (
-                            item.label.slice(0, 1).toUpperCase()
-                          )}
+                          {description}
+                        </p>
+                      ) : null}
+                    </div>
+                    <div
+                      aria-hidden="true"
+                      className="dashboard-tier-preview list-card-summary"
+                      style={{
+                        viewTransitionName: isCompact
+                          ? undefined
+                          : `tier-list-${list.id}`,
+                      }}
+                    >
+                      {list.tiers.map((tier) => (
+                        <div className="dashboard-tier-preview-row" key={tier.id}>
+                          <div
+                            className="dashboard-tier-preview-label"
+                            style={{ background: tier.color }}
+                          >
+                            {tier.name}
+                          </div>
+                          <div className="dashboard-tier-preview-items">
+                            {list.items
+                              .filter((item) => item.tierId === tier.id)
+                              .map((item) => (
+                                <div
+                                  className="dashboard-tier-preview-item"
+                                  key={item.id}
+                                  title={item.label}
+                                >
+                                  {item.imageUrl ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img alt="" src={item.imageUrl} />
+                                  ) : (
+                                    item.label.slice(0, 1).toUpperCase()
+                                  )}
+                                </div>
+                              ))}
+                          </div>
                         </div>
                       ))}
+                      <div className="dashboard-tier-preview-tray">
+                        {unplacedItems.map((item) => (
+                          <div
+                            className="dashboard-tier-preview-item"
+                            key={item.id}
+                            title={item.label}
+                          >
+                            {item.imageUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img alt="" src={item.imageUrl} />
+                            ) : (
+                              item.label.slice(0, 1).toUpperCase()
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                  <div className="nav-actions" style={{ justifyContent: "flex-start" }}>
-                    <Link
-                      aria-label={`Edit ${list.title}`}
-                      className="button icon"
-                      href={`/lists/${list.id}`}
-                      title="Edit"
-                    >
-                      <Pencil size={16} />
-                    </Link>
-                    <button
-                      className="button icon danger"
-                      aria-label={`Delete ${list.title}`}
-                      onClick={() => void remove(list.id)}
-                      title="Delete"
-                      type="button"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                    <button
-                      className={`button icon share-button${copiedListId === list.id ? " is-copied" : ""}`}
-                      aria-label={
-                        copiedListId === list.id ? "Copied" : `Share ${list.title}`
-                      }
-                      data-tooltip="Copied"
-                      disabled={sharingListId === list.id}
-                      onClick={() => void share(list.id)}
-                      title={copiedListId === list.id ? "Copied" : "Share"}
-                      type="button"
-                    >
-                      {sharingListId === list.id ? (
-                        <Loader2 size={16} />
-                      ) : copiedListId === list.id ? (
-                        <Check size={16} />
-                      ) : (
-                        <Share2 size={16} />
-                      )}
-                    </button>
-                    <button
-                      className="button icon"
-                      aria-label={`Download ${list.title} as an image`}
-                      disabled={exportingImageListId === list.id}
-                      onClick={() => void exportImage(list.id, "download")}
-                      title="Download image"
-                      type="button"
-                    >
-                      {exportingImageListId === list.id ? (
-                        <Loader2 size={16} />
-                      ) : (
-                        <Download size={16} />
-                      )}
-                    </button>
-                    <button
-                      className={`button icon share-button${copiedImageListId === list.id ? " is-copied" : ""}`}
-                      aria-label={
-                        copiedImageListId === list.id
-                          ? "Copied image"
-                          : `Copy ${list.title} image`
-                      }
-                      data-tooltip="Copied image"
-                      disabled={exportingImageListId === list.id}
-                      onClick={() => void exportImage(list.id, "copy")}
-                      title={
-                        copiedImageListId === list.id ? "Copied image" : "Copy image"
-                      }
-                      type="button"
-                    >
-                      {exportingImageListId === list.id ? (
-                        <Loader2 size={16} />
-                      ) : copiedImageListId === list.id ? (
-                        <Check size={16} />
-                      ) : (
-                        <Copy size={16} />
-                      )}
-                    </button>
-                  </div>
-                </article>
+                    <div className="nav-actions" style={{ justifyContent: "flex-start" }}>
+                      <Link
+                        aria-label={`Edit ${list.title}`}
+                        className="button icon"
+                        href={`/lists/${list.id}`}
+                        title="Edit"
+                        transitionTypes={["nav-forward"]}
+                      >
+                        <Pencil size={16} />
+                      </Link>
+                      <button
+                        className="button icon danger"
+                        aria-label={`Delete ${list.title}`}
+                        onClick={() => void remove(list.id)}
+                        title="Delete"
+                        type="button"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                      <button
+                        className={`button icon share-button${copiedListId === list.id ? " is-copied" : ""}`}
+                        aria-label={
+                          copiedListId === list.id ? "Copied" : `Share ${list.title}`
+                        }
+                        data-tooltip="Copied"
+                        disabled={sharingListId === list.id}
+                        onClick={() => void share(list.id)}
+                        title={copiedListId === list.id ? "Copied" : "Share"}
+                        type="button"
+                      >
+                        {sharingListId === list.id ? (
+                          <Loader2 size={16} />
+                        ) : copiedListId === list.id ? (
+                          <Check size={16} />
+                        ) : (
+                          <Share2 size={16} />
+                        )}
+                      </button>
+                      <button
+                        className="button icon"
+                        aria-label={`Download ${list.title} as an image`}
+                        disabled={exportingImageListId === list.id}
+                        onClick={() => void exportImage(list.id, "download")}
+                        title="Download image"
+                        type="button"
+                      >
+                        {exportingImageListId === list.id ? (
+                          <Loader2 size={16} />
+                        ) : (
+                          <Download size={16} />
+                        )}
+                      </button>
+                      <button
+                        className={`button icon share-button${copiedImageListId === list.id ? " is-copied" : ""}`}
+                        aria-label={
+                          copiedImageListId === list.id
+                            ? "Copied image"
+                            : `Copy ${list.title} image`
+                        }
+                        data-tooltip="Copied image"
+                        disabled={exportingImageListId === list.id}
+                        onClick={() => void exportImage(list.id, "copy")}
+                        title={
+                          copiedImageListId === list.id ? "Copied image" : "Copy image"
+                        }
+                        type="button"
+                      >
+                        {exportingImageListId === list.id ? (
+                          <Loader2 size={16} />
+                        ) : copiedImageListId === list.id ? (
+                          <Check size={16} />
+                        ) : (
+                          <Copy size={16} />
+                        )}
+                      </button>
+                    </div>
+                  </article>
+                </ViewTransition>
               );
             })}
             <button

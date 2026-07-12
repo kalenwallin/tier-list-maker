@@ -27,14 +27,14 @@ export function HomeClient() {
 
   async function getStarted() {
     if (user) {
-      router.push("/dashboard");
+      router.push("/dashboard", { transitionTypes: ["nav-forward"] });
       return;
     }
 
     setIsCreating(true);
     try {
       const id = await createList("New tier list");
-      router.push(`/lists/${id}`);
+      router.push(`/lists/${id}`, { transitionTypes: ["nav-forward"] });
     } finally {
       setIsCreating(false);
     }

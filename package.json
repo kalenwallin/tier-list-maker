@@ -4,12 +4,17 @@
   "private": true,
   "scripts": {
     "dev": "convex dev --start \"next dev\"",
-    "build": "npx convex deploy --cmd 'next build'",
+    "build": "next build",
+    "build:cloudflare": "opennextjs-cloudflare build",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "convex deploy --cmd 'opennextjs-cloudflare build' && opennextjs-cloudflare deploy",
+    "cf-typegen": "wrangler types --env-file .dev.vars.example --include-runtime=false --env-interface CloudflareEnv cloudflare-env.d.ts",
     "start": "next start",
     "lint": "biome lint .",
     "format": "biome format --write ."
   },
   "dependencies": {
+    "@opennextjs/cloudflare": "^1.20.1",
     "@workos-inc/authkit-nextjs": "^4.1.1",
     "convex": "^1.41.0",
     "html-to-image": "latest",
@@ -23,7 +28,8 @@
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
-    "typescript": "latest"
+    "typescript": "^6.0.3",
+    "wrangler": "^4.110.0"
   },
   "packageManager": "pnpm@11.12.0+sha512.820a6fbd0d9f04c226638002aead1e45340a9139dd5dc077c1d83ef44aa2481c8eb6637b4c9aa696a3c7e35ba818e49cf27213e5f2b91138d09b7a3e26e898ba"
 }

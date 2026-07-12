@@ -9,6 +9,7 @@ export function AppShell({
   hideDashboard = false,
   hideSignOut = false,
   hideSignedOutActions = false,
+  dashboardTransitionType = "nav-back",
   signedOutPrimaryHref,
   signedOutPrimaryLabel,
 }: {
@@ -16,13 +17,14 @@ export function AppShell({
   hideDashboard?: boolean;
   hideSignOut?: boolean;
   hideSignedOutActions?: boolean;
+  dashboardTransitionType?: "nav-forward" | "nav-back";
   signedOutPrimaryHref?: string;
   signedOutPrimaryLabel?: string;
 }) {
   return (
     <main className="page-shell">
-      <header className="topbar">
-        <Link className="brand" href="/">
+      <header className="topbar" style={{ viewTransitionName: "persistent-nav" }}>
+        <Link className="brand" href="/" transitionTypes={["nav-back"]}>
           <span className="brand-mark" aria-hidden="true">
             <Trophy size={22} />
           </span>
@@ -32,7 +34,11 @@ export function AppShell({
           <ThemeToggle />
           <span className="topbar-action-slot" id="topbar-leading-action-slot" />
           {hideDashboard ? null : (
-            <Link className="button" href="/dashboard">
+            <Link
+              className="button"
+              href="/dashboard"
+              transitionTypes={[dashboardTransitionType]}
+            >
               Dashboard
             </Link>
           )}

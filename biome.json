@@ -1,7 +1,15 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.5.0/schema.json",
   "files": {
-    "includes": ["**", "!node_modules", "!.next", "!.pnpm-store", "!convex/_generated"]
+    "includes": [
+      "**",
+      "!node_modules",
+      "!.next",
+      "!.open-next",
+      "!.wrangler",
+      "!.pnpm-store",
+      "!convex/_generated"
+    ]
   },
   "formatter": {
     "enabled": true,

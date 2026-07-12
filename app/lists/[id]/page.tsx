@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/AppShell";
+import { DirectionalTransition } from "@/components/DirectionalTransition";
 import { NewTierListClient } from "@/components/NewTierListClient";
 import { TierListEditor } from "@/components/TierListEditor";
 
@@ -14,15 +15,19 @@ export default async function ListEditorPage({
 
   if (id === "new") {
     return (
-      <AppShell hideSignOut>
-        <NewTierListClient />
-      </AppShell>
+      <DirectionalTransition>
+        <AppShell hideSignOut>
+          <NewTierListClient />
+        </AppShell>
+      </DirectionalTransition>
     );
   }
 
   return (
-    <AppShell hideSignedOutActions hideSignOut>
-      <TierListEditor id={id} previewMode={mode === "preview"} />
-    </AppShell>
+    <DirectionalTransition>
+      <AppShell hideSignedOutActions hideSignOut>
+        <TierListEditor id={id} previewMode={mode === "preview"} />
+      </AppShell>
+    </DirectionalTransition>
   );
 }

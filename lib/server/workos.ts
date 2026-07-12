@@ -1,9 +1,10 @@
-const PRODUCTION_APP_URL = "https://tier-listmaker.netlify.app";
+import { DEFAULT_PRODUCTION_URL } from "@/lib/site-url";
 
 export function getWorkOSBaseUrl() {
   return (
     process.env.NEXT_PUBLIC_APP_URL ??
-    (process.env.NODE_ENV === "production" ? PRODUCTION_APP_URL : undefined)
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    (process.env.NODE_ENV === "production" ? DEFAULT_PRODUCTION_URL : undefined)
   );
 }
 
@@ -23,5 +24,5 @@ export function getWorkOSRedirectUri() {
     return url.toString();
   }
 
-  return new URL("/callback", "http://localhost:3001").toString();
+  return new URL("/callback", "http://localhost:3000").toString();
 }

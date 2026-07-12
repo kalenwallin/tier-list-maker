@@ -18,7 +18,7 @@ export function NewTierListClient() {
     async function createAndOpenList() {
       try {
         const id = await createList("New tier list");
-        router.replace(`/lists/${id}`);
+        router.replace(`/lists/${id}`, { transitionTypes: ["nav-forward"] });
       } catch {
         setError("Could not create a new tier list.");
         hasStartedCreate.current = false;
@@ -31,9 +31,7 @@ export function NewTierListClient() {
   return (
     <section className="panel panel-pad">
       <h1 style={{ marginTop: 0 }}>New tier list</h1>
-      <p className="muted">
-        {error ?? "Creating a fresh board and opening the editor."}
-      </p>
+      <p className="muted">{error ?? "Creating a fresh board and opening the editor."}</p>
       {error ? (
         <button
           className="button primary"

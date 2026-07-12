@@ -1,7 +1,15 @@
 "use client";
 
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { DragEvent, RefObject, useLayoutEffect, useRef, useState } from "react";
+import {
+  DragEvent,
+  RefObject,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  ViewTransition,
+} from "react";
 import { getSiteUrl } from "@/lib/site-url";
 import { Tier, TierItem } from "@/lib/tier-list";
 
@@ -21,6 +29,7 @@ type Props = {
   exportRef?: RefObject<HTMLDivElement | null>;
   expandableHeader?: boolean;
   isExporting?: boolean;
+  viewTransitionName?: string;
 };
 
 export function TierListPreview({
@@ -35,7 +44,9 @@ export function TierListPreview({
   exportRef,
   expandableHeader = false,
   isExporting = false,
+  viewTransitionName,
 }: Props) {
+  const transitionNamespace = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const unranked = items.filter((item) => !item.tierId);
   const [isHeaderExpanded, setIsHeaderExpanded] = useState(false);
   const [headerCanExpand, setHeaderCanExpand] = useState(false);
@@ -104,6 +115,7 @@ export function TierListPreview({
       ]
         .filter(Boolean)
         .join(" ")}
+      style={{ viewTransitionName }}
     >
       <div
         ref={exportRef}
@@ -180,17 +192,14 @@ export function TierListPreview({
                 {items
                   .filter((item) => item.tierId === tier.id)
                   .map((item) => (
-                    <div className="tile-position" key={item.id}>
-                      <ItemEdgeDropTarget
-                        draggable={draggable}
-                        onDrop={() => onDropItem?.(tier.id, item.id, "before")}
-                      />
-                      <Tile
-                        draggable={draggable}
-                        item={item}
-                        onDragStart={onDragStart}
-                      />
-                    </div>
+                    <AnimatedTile
+                      draggable={draggable}
+                      item={item}
+                      key={item.id}
+                      onDragStart={onDragStart}
+                      onDrop={() => onDropItem?.(tier.id, item.id, "before")}
+                      transitionNamespace={transitionNamespace}
+                    />
                   ))}
               </div>
             </div>
@@ -214,22 +223,49 @@ export function TierListPreview({
             }
           >
             {unranked.map((item) => (
-              <div className="tile-position" key={item.id}>
-                <ItemEdgeDropTarget
-                  draggable={draggable}
-                  onDrop={() => onDropItem?.(undefined, item.id, "before")}
-                />
-                <Tile
-                  draggable={draggable}
-                  item={item}
-                  onDragStart={onDragStart}
-                />
-              </div>
+              <AnimatedTile
+                draggable={draggable}
+                item={item}
+                key={item.id}
+                onDragStart={onDragStart}
+                onDrop={() => onDropItem?.(undefined, item.id, "before")}
+                transitionNamespace={transitionNamespace}
+              />
             ))}
           </div>
         </div>
       ) : null}
     </section>
+  );
+}
+
+function AnimatedTile({
+  draggable,
+  item,
+  onDragStart,
+  onDrop,
+  transitionNamespace,
+}: {
+  draggable: boolean;
+  item: TierItem;
+  onDragStart?: (itemId: string) => void;
+  onDrop: () => void;
+  transitionNamespace: string;
+}) {
+  return (
+    <ViewTransition
+      default="none"
+      enter="scale-in"
+      exit="scale-out"
+      name={`tier-item-${transitionNamespace}-${item.id}`}
+      share="item-morph"
+      update="auto"
+    >
+      <div className="tile-position">
+        <ItemEdgeDropTarget draggable={draggable} onDrop={onDrop} />
+        <Tile draggable={draggable} item={item} onDragStart={onDragStart} />
+      </div>
+    </ViewTransition>
   );
 }
 

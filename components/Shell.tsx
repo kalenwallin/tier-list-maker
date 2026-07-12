@@ -7,8 +7,8 @@ import { ThemeToggle } from "./ThemeToggle";
 export function Shell({ children }: { children: ReactNode }) {
   return (
     <main className="page-shell">
-      <header className="topbar">
-        <Link className="brand" href="/">
+      <header className="topbar" style={{ viewTransitionName: "persistent-nav" }}>
+        <Link className="brand" href="/" transitionTypes={["nav-back"]}>
           <span className="brand-mark" aria-hidden="true">
             <Trophy size={22} />
           </span>
@@ -16,7 +16,7 @@ export function Shell({ children }: { children: ReactNode }) {
         </Link>
         <nav className="nav-actions">
           <ThemeToggle />
-          <Link className="button" href="/dashboard">
+          <Link className="button" href="/dashboard" transitionTypes={["nav-back"]}>
             Dashboard
           </Link>
           <NavAuth />

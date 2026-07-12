@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
+import Link from "next/link";
 
 export function AuthNav({
   hideSignOut = false,
@@ -40,9 +41,19 @@ export function AuthNav({
       <a className="button" href="/sign-in">
         Sign in
       </a>
-      <a className="button primary" href={signedOutPrimaryHref}>
-        {signedOutPrimaryLabel}
-      </a>
+      {signedOutPrimaryHref === "/lists/new" ? (
+        <Link
+          className="button primary"
+          href={signedOutPrimaryHref}
+          transitionTypes={["nav-forward"]}
+        >
+          {signedOutPrimaryLabel}
+        </Link>
+      ) : (
+        <a className="button primary" href={signedOutPrimaryHref}>
+          {signedOutPrimaryLabel}
+        </a>
+      )}
     </>
   );
 }
