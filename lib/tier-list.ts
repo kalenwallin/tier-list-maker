@@ -26,6 +26,24 @@ export const STARTER_ITEMS: TierItem[] = [
   { id: "sample-3", label: "Paste image URLs too" },
 ];
 
+export function sortItemsByTier(items: TierItem[], tiers: Tier[]) {
+  const tierOrder = new Map(tiers.map((tier, index) => [tier.id, index]));
+
+  return items
+    .map((item, index) => ({ item, index }))
+    .sort((left, right) => {
+      const leftTier = left.item.tierId
+        ? (tierOrder.get(left.item.tierId) ?? tiers.length)
+        : tiers.length;
+      const rightTier = right.item.tierId
+        ? (tierOrder.get(right.item.tierId) ?? tiers.length)
+        : tiers.length;
+
+      return leftTier - rightTier || left.index - right.index;
+    })
+    .map(({ item }) => item);
+}
+
 export function createId(prefix: string) {
   return `${prefix}-${crypto.randomUUID()}`;
 }

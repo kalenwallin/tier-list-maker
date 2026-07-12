@@ -1,6 +1,6 @@
 "use client";
 
-import { createId, Tier, TierItem } from "@/lib/tier-list";
+import { createId, sortItemsByTier, Tier, TierItem } from "@/lib/tier-list";
 import { useTierList } from "@/lib/use-tier-lists";
 import { StoredTierList } from "@/lib/db";
 import {
@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { createPortal } from "react-dom";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { TierListPreview } from "./TierListPreview";
 
 export function TierListEditor({
@@ -52,6 +52,7 @@ export function TierListEditor({
   const [topbarActionSlot, setTopbarActionSlot] = useState<HTMLElement | null>(
     null,
   );
+  const sortedItems = useMemo(() => sortItemsByTier(items, tiers), [items, tiers]);
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
@@ -373,7 +374,7 @@ export function TierListEditor({
         <div className="form-row">
           <span className="label">Items</span>
           <div className="small-list">
-            {items.map((item) => (
+            {sortedItems.map((item) => (
               <div className="item-edit-row" key={item.id}>
                 <input
                   className="input"
