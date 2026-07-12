@@ -43,8 +43,6 @@ export default async function OpenGraphImage({ params }: OpenGraphImageProps) {
         <div
           style={{
             display: "flex",
-            alignItems: "flex-start",
-            gap: 32,
             marginBottom: 22,
             width: "100%",
           }}
@@ -55,7 +53,6 @@ export default async function OpenGraphImage({ params }: OpenGraphImageProps) {
               flex: 1,
               flexDirection: "column",
               minWidth: 0,
-              paddingRight: 24,
             }}
           >
             <div
@@ -63,7 +60,6 @@ export default async function OpenGraphImage({ params }: OpenGraphImageProps) {
                 fontSize: getTitleFontSize(title),
                 fontWeight: 900,
                 lineHeight: 0.9,
-                maxWidth: 760,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
@@ -77,7 +73,6 @@ export default async function OpenGraphImage({ params }: OpenGraphImageProps) {
                 color: "#575750",
                 fontSize: 40,
                 lineHeight: 1.18,
-                maxWidth: 820,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
@@ -86,13 +81,11 @@ export default async function OpenGraphImage({ params }: OpenGraphImageProps) {
               {description}
             </div>
           </div>
-
-          <WebsiteUrl url={websiteUrl} />
         </div>
 
         <div style={{ flex: 1 }} />
 
-        <BrandRow />
+        <BrandRow websiteUrl={websiteUrl} />
         <div style={{ height: 28 }} />
         <TierStrip tiers={tiers} />
       </div>
@@ -163,26 +156,36 @@ function FaviconMark({ size = 140 }: { size?: number }) {
   );
 }
 
-function BrandRow() {
+function BrandRow({ websiteUrl }: { websiteUrl: string }) {
   return (
     <div
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 14,
+        justifyContent: "space-between",
+        width: "100%",
       }}
     >
-      <FaviconMark size={52} />
       <div
         style={{
-          color: "#111",
-          fontSize: 34,
-          fontWeight: 900,
-          lineHeight: 1,
+          display: "flex",
+          alignItems: "center",
+          gap: 14,
         }}
       >
-        Tier List Maker
+        <FaviconMark size={52} />
+        <div
+          style={{
+            color: "#111",
+            fontSize: 34,
+            fontWeight: 900,
+            lineHeight: 1,
+          }}
+        >
+          Tier List Maker
+        </div>
       </div>
+      <WebsiteUrl url={websiteUrl} />
     </div>
   );
 }

@@ -23,5 +23,5 @@ export function getWorkOSRedirectUri() {
     return url.toString();
   }
 
-  return new URL("/callback", "http://localhost:3000").toString();
+  return new URL("/callback", "http://localhost:3001").toString();
 }
