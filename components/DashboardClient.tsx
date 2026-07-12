@@ -390,13 +390,37 @@ export function DashboardClient() {
                       </p>
                     ) : null}
                   </div>
-                  <div className="mini-bars list-card-summary" aria-hidden="true">
-                    {list.tiers.slice(0, 5).map((tier) => (
-                      <div
-                        className="mini-bar"
-                        key={tier.id}
-                        style={{ background: tier.color }}
-                      />
+                  <div
+                    aria-hidden="true"
+                    className="dashboard-tier-preview list-card-summary"
+                  >
+                    {list.tiers.map((tier) => (
+                      <div className="dashboard-tier-preview-row" key={tier.id}>
+                        <div
+                          className="dashboard-tier-preview-label"
+                          style={{ background: tier.color }}
+                        >
+                          {tier.name}
+                        </div>
+                        <div className="dashboard-tier-preview-items">
+                          {list.items
+                            .filter((item) => item.tierId === tier.id)
+                            .map((item) => (
+                              <div
+                                className="dashboard-tier-preview-item"
+                                key={item.id}
+                                title={item.label}
+                              >
+                                {item.imageUrl ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img alt="" src={item.imageUrl} />
+                                ) : (
+                                  item.label.slice(0, 1).toUpperCase()
+                                )}
+                              </div>
+                            ))}
+                        </div>
+                      </div>
                     ))}
                   </div>
                   <div className="nav-actions" style={{ justifyContent: "flex-start" }}>
