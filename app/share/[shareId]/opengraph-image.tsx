@@ -59,7 +59,7 @@ export default async function OpenGraphImage({ params }: OpenGraphImageProps) {
               style={{
                 fontSize: getTitleFontSize(title),
                 fontWeight: 900,
-                lineHeight: 0.9,
+                lineHeight: 1.1,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
