@@ -2,7 +2,7 @@
 
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import { useQuery } from "convex/react";
-import { Loader2, Pencil } from "lucide-react";
+import { Check, Copy, Loader2, Pencil } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -19,6 +19,9 @@ export function SharedTierListView({ shareId }: { shareId: string }) {
   const { user, loading: authLoading } = useAuth();
   const [topbarLeadingActionSlot, setTopbarLeadingActionSlot] =
     useState<HTMLElement | null>(null);
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">(
+    "idle",
+  );
   const list = useQuery(api.tierLists.getShared, { shareId }) as
     | SharedTierList
     | null
@@ -32,6 +35,18 @@ export function SharedTierListView({ shareId }: { shareId: string }) {
     setTopbarLeadingActionSlot(document.getElementById("topbar-leading-action-slot"));
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  async function copyShareLink() {
+    try {
+      const url = `${window.location.origin}/share/${encodeURIComponent(shareId)}`;
+      await navigator.clipboard.writeText(url);
+      setCopyStatus("copied");
+    } catch {
+      setCopyStatus("error");
+    }
+
+    window.setTimeout(() => setCopyStatus("idle"), 1800);
+  }
 
   if (list === undefined) {
     return (
@@ -55,11 +70,27 @@ export function SharedTierListView({ shareId }: { shareId: string }) {
 
   return (
     <div className="shared-view">
-      {canEdit && topbarLeadingActionSlot
+      {topbarLeadingActionSlot
         ? createPortal(
-            <Link className="button" href={`/lists/${list._id}`}>
-              <Pencil size={16} /> Edit
-            </Link>,
+            <>
+              {canEdit ? (
+                <Link className="button" href={`/lists/${list._id}`}>
+                  <Pencil size={16} /> Edit
+                </Link>
+              ) : null}
+              <button
+                className="button"
+                onClick={() => void copyShareLink()}
+                type="button"
+              >
+                {copyStatus === "copied" ? <Check size={16} /> : <Copy size={16} />}
+                {copyStatus === "copied"
+                  ? "Copied"
+                  : copyStatus === "error"
+                    ? "Could not copy"
+                    : "Copy link"}
+              </button>
+            </>,
             topbarLeadingActionSlot,
           )
         : null}

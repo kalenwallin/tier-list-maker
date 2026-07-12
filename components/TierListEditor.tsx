@@ -52,7 +52,7 @@ export function TierListEditor({
   const [isExporting, setIsExporting] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [saveStatus, setSaveStatus] = useState("Saved");
-  const [shareStatus, setShareStatus] = useState("Share");
+  const [shareStatus, setShareStatus] = useState("Copy link");
   const [copyImageStatus, setCopyImageStatus] = useState("Copy image");
   const [newTier, setNewTier] = useState("");
   const [topbarActionSlot, setTopbarActionSlot] = useState<HTMLElement | null>(
@@ -148,10 +148,10 @@ export function TierListEditor({
       const url = shareUrl ?? (await createShareLink());
       await navigator.clipboard.writeText(url);
       setShareStatus("Copied");
-      window.setTimeout(() => setShareStatus("Share"), 1800);
+      window.setTimeout(() => setShareStatus("Copy link"), 1800);
     } catch {
       setShareStatus("Could not copy");
-      window.setTimeout(() => setShareStatus("Share"), 1800);
+      window.setTimeout(() => setShareStatus("Copy link"), 1800);
     }
   }
 
@@ -266,6 +266,20 @@ export function TierListEditor({
                 <Link className="button" href={`/lists/${id}`}>
                   <Pencil size={16} /> Edit
                 </Link>
+                {syncMode === "cloud" ? (
+                  <button
+                    className="button"
+                    onClick={() => void shareList()}
+                    type="button"
+                  >
+                    {shareStatus === "Copied" ? (
+                      <Check size={16} />
+                    ) : (
+                      <Copy size={16} />
+                    )}
+                    {shareStatus}
+                  </button>
+                ) : null}
                 <button
                   className="button dark"
                   onClick={() => void exportImage()}
@@ -326,7 +340,13 @@ export function TierListEditor({
                     onClick={() => void shareList()}
                     type="button"
                   >
-                    {shareUrl ? <Copy size={16} /> : <Share2 size={16} />}
+                    {shareStatus === "Copied" ? (
+                      <Check size={16} />
+                    ) : shareUrl ? (
+                      <Copy size={16} />
+                    ) : (
+                      <Share2 size={16} />
+                    )}
                     {shareStatus}
                   </button>
                 </>
