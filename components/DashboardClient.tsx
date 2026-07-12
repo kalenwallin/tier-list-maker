@@ -1,18 +1,14 @@
 "use client";
 
-import { useTierLists } from "@/lib/use-tier-lists";
-import {
-  copyPngToClipboard,
-  downloadPng,
-  renderTierListPng,
-  waitForNextFrame,
-} from "@/lib/image-export";
 import {
   Check,
   Copy,
   Download,
   FilePlus2,
+  LayoutGrid,
+  List,
   Loader2,
+  Minimize2,
   Pencil,
   Share2,
   Trash2,
@@ -21,6 +17,13 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
+import {
+  copyPngToClipboard,
+  downloadPng,
+  renderTierListPng,
+  waitForNextFrame,
+} from "@/lib/image-export";
+import { useTierLists } from "@/lib/use-tier-lists";
 import { TierListPreview } from "./TierListPreview";
 
 export function DashboardClient() {
@@ -41,10 +44,10 @@ export function DashboardClient() {
   const listGridRef = useRef<HTMLElement>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [layout, setLayout] = useState<"cards" | "list">("cards");
+  const [isCompact, setIsCompact] = useState(false);
   const [hasWrappedCardSummary, setHasWrappedCardSummary] = useState(false);
-  const [exportingImageListId, setExportingImageListId] = useState<string | null>(
-    null,
-  );
+  const [exportingImageListId, setExportingImageListId] = useState<string | null>(null);
   const [sharingListId, setSharingListId] = useState<string | null>(null);
   const [copiedListId, setCopiedListId] = useState<string | null>(null);
   const [copiedImageListId, setCopiedImageListId] = useState<string | null>(null);
@@ -109,7 +112,7 @@ export function DashboardClient() {
       isActive = false;
       resizeObserver.disconnect();
     };
-  }, [lists]);
+  }, [lists, layout]);
 
   async function create() {
     setIsCreating(true);
@@ -162,7 +165,9 @@ export function DashboardClient() {
     link.download = `tier-list-maker-${new Date().toISOString().slice(0, 10)}.json`;
     link.click();
     URL.revokeObjectURL(url);
-    setMessage(`Exported ${backup.lists.length} tier list${backup.lists.length === 1 ? "" : "s"}.`);
+    setMessage(
+      `Exported ${backup.lists.length} tier list${backup.lists.length === 1 ? "" : "s"}.`,
+    );
   }
 
   async function exportImage(listId: string, action: "download" | "copy") {
@@ -216,13 +221,9 @@ export function DashboardClient() {
     setMessage(null);
     try {
       const importedCount = await importData(await file.text());
-      setMessage(
-        `Imported ${importedCount} tier list${importedCount === 1 ? "" : "s"}.`,
-      );
+      setMessage(`Imported ${importedCount} tier list${importedCount === 1 ? "" : "s"}.`);
     } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "Could not import that file.",
-      );
+      setMessage(error instanceof Error ? error.message : "Could not import that file.");
     } finally {
       setIsImporting(false);
     }
@@ -273,11 +274,7 @@ export function DashboardClient() {
           >
             <FilePlus2 size={16} /> {isCreating ? "Creating" : "New list"}
           </button>
-          <button
-            className="button"
-            onClick={() => void exportBackup()}
-            type="button"
-          >
+          <button className="button" onClick={() => void exportBackup()} type="button">
             <Download size={16} /> Export data
           </button>
           <button
@@ -317,136 +314,171 @@ export function DashboardClient() {
           </button>
         </section>
       ) : (
-        <section
-          className={["grid", hasWrappedCardSummary ? "has-wrapped-card-summary" : ""]
-            .filter(Boolean)
-            .join(" ")}
-          ref={listGridRef}
-        >
-          {lists.map((list) => {
-            const description = list.description.trim();
+        <>
+          <div className="dashboard-layout-controls">
+            <fieldset aria-label="Dashboard layout" className="layout-switcher">
+              <button
+                aria-pressed={layout === "cards"}
+                className="button layout-button"
+                onClick={() => setLayout("cards")}
+                type="button"
+              >
+                <LayoutGrid size={16} /> Cards
+              </button>
+              <button
+                aria-pressed={layout === "list"}
+                className="button layout-button"
+                onClick={() => setLayout("list")}
+                type="button"
+              >
+                <List size={16} /> List
+              </button>
+            </fieldset>
+            <button
+              aria-pressed={isCompact}
+              className="button compact-button"
+              onClick={() => setIsCompact((current) => !current)}
+              type="button"
+            >
+              <Minimize2 size={16} /> Compact
+            </button>
+          </div>
+          <section
+            className={[
+              "grid",
+              layout === "list" ? "is-list-layout" : "is-card-layout",
+              isCompact ? "is-compact" : "",
+              hasWrappedCardSummary ? "has-wrapped-card-summary" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            ref={listGridRef}
+          >
+            {lists.map((list) => {
+              const description = list.description.trim();
 
-            return (
-              <article className="list-card" key={list.id}>
-                <Link
-                  aria-label={`Open preview for ${list.title}`}
-                  className="list-card-preview-link"
-                  href={`/lists/${list.id}?mode=preview`}
-                >
-                  <span className="visually-hidden">Open preview</span>
-                </Link>
-                <p className="list-card-item-count">{list.items.length} items</p>
-                <div className="list-card-details list-card-summary">
-                  <h2
-                    className={[
-                      "list-card-title",
-                      list.title.trim().length > 20 ? "is-long" : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
-                    data-list-card-summary-text
-                    title={list.title}
-                  >
-                    {list.title}
-                  </h2>
-                  {description ? (
-                    <p
-                      className="list-card-description"
-                      data-list-card-summary-text
-                      title={description}
-                    >
-                      {description}
-                    </p>
-                  ) : null}
-                </div>
-                <div className="mini-bars list-card-summary" aria-hidden="true">
-                  {list.tiers.slice(0, 5).map((tier) => (
-                    <div
-                      className="mini-bar"
-                      key={tier.id}
-                      style={{ background: tier.color }}
-                    />
-                  ))}
-                </div>
-                <div className="nav-actions" style={{ justifyContent: "flex-start" }}>
+              return (
+                <article className="list-card" key={list.id}>
                   <Link
-                    aria-label={`Edit ${list.title}`}
-                    className="button icon"
-                    href={`/lists/${list.id}`}
-                    title="Edit"
+                    aria-label={`Open preview for ${list.title}`}
+                    className="list-card-preview-link"
+                    href={`/lists/${list.id}?mode=preview`}
                   >
-                    <Pencil size={16} />
+                    <span className="visually-hidden">Open preview</span>
                   </Link>
-                  <button
-                    className="button icon danger"
-                    aria-label={`Delete ${list.title}`}
-                    onClick={() => void remove(list.id)}
-                    title="Delete"
-                    type="button"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                  <button
-                    className={`button icon share-button${copiedListId === list.id ? " is-copied" : ""}`}
-                    aria-label={
-                      copiedListId === list.id ? "Copied" : `Share ${list.title}`
-                    }
-                    data-tooltip="Copied"
-                    disabled={sharingListId === list.id}
-                    onClick={() => void share(list.id)}
-                    title={copiedListId === list.id ? "Copied" : "Share"}
-                    type="button"
-                  >
-                    {sharingListId === list.id ? (
-                      <Loader2 size={16} />
-                    ) : copiedListId === list.id ? (
-                      <Check size={16} />
-                    ) : (
-                      <Share2 size={16} />
-                    )}
-                  </button>
-                  <button
-                    className="button icon"
-                    aria-label={`Download ${list.title} as an image`}
-                    disabled={exportingImageListId === list.id}
-                    onClick={() => void exportImage(list.id, "download")}
-                    title="Download image"
-                    type="button"
-                  >
-                    {exportingImageListId === list.id ? (
-                      <Loader2 size={16} />
-                    ) : (
-                      <Download size={16} />
-                    )}
-                  </button>
-                  <button
-                    className={`button icon share-button${copiedImageListId === list.id ? " is-copied" : ""}`}
-                    aria-label={
-                      copiedImageListId === list.id
-                        ? "Copied image"
-                        : `Copy ${list.title} image`
-                    }
-                    data-tooltip="Copied image"
-                    disabled={exportingImageListId === list.id}
-                    onClick={() => void exportImage(list.id, "copy")}
-                    title={
-                      copiedImageListId === list.id ? "Copied image" : "Copy image"
-                    }
-                    type="button"
-                  >
-                    {exportingImageListId === list.id ? (
-                      <Loader2 size={16} />
-                    ) : copiedImageListId === list.id ? (
-                      <Check size={16} />
-                    ) : (
-                      <Copy size={16} />
-                    )}
-                  </button>
-                </div>
-              </article>
-            );
-          })}
-        </section>
+                  <p className="list-card-item-count">{list.items.length} items</p>
+                  <div className="list-card-details list-card-summary">
+                    <h2
+                      className={[
+                        "list-card-title",
+                        list.title.trim().length > 20 ? "is-long" : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                      data-list-card-summary-text
+                      title={list.title}
+                    >
+                      {list.title}
+                    </h2>
+                    {description ? (
+                      <p
+                        className="list-card-description"
+                        data-list-card-summary-text
+                        title={description}
+                      >
+                        {description}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="mini-bars list-card-summary" aria-hidden="true">
+                    {list.tiers.slice(0, 5).map((tier) => (
+                      <div
+                        className="mini-bar"
+                        key={tier.id}
+                        style={{ background: tier.color }}
+                      />
+                    ))}
+                  </div>
+                  <div className="nav-actions" style={{ justifyContent: "flex-start" }}>
+                    <Link
+                      aria-label={`Edit ${list.title}`}
+                      className="button icon"
+                      href={`/lists/${list.id}`}
+                      title="Edit"
+                    >
+                      <Pencil size={16} />
+                    </Link>
+                    <button
+                      className="button icon danger"
+                      aria-label={`Delete ${list.title}`}
+                      onClick={() => void remove(list.id)}
+                      title="Delete"
+                      type="button"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                    <button
+                      className={`button icon share-button${copiedListId === list.id ? " is-copied" : ""}`}
+                      aria-label={
+                        copiedListId === list.id ? "Copied" : `Share ${list.title}`
+                      }
+                      data-tooltip="Copied"
+                      disabled={sharingListId === list.id}
+                      onClick={() => void share(list.id)}
+                      title={copiedListId === list.id ? "Copied" : "Share"}
+                      type="button"
+                    >
+                      {sharingListId === list.id ? (
+                        <Loader2 size={16} />
+                      ) : copiedListId === list.id ? (
+                        <Check size={16} />
+                      ) : (
+                        <Share2 size={16} />
+                      )}
+                    </button>
+                    <button
+                      className="button icon"
+                      aria-label={`Download ${list.title} as an image`}
+                      disabled={exportingImageListId === list.id}
+                      onClick={() => void exportImage(list.id, "download")}
+                      title="Download image"
+                      type="button"
+                    >
+                      {exportingImageListId === list.id ? (
+                        <Loader2 size={16} />
+                      ) : (
+                        <Download size={16} />
+                      )}
+                    </button>
+                    <button
+                      className={`button icon share-button${copiedImageListId === list.id ? " is-copied" : ""}`}
+                      aria-label={
+                        copiedImageListId === list.id
+                          ? "Copied image"
+                          : `Copy ${list.title} image`
+                      }
+                      data-tooltip="Copied image"
+                      disabled={exportingImageListId === list.id}
+                      onClick={() => void exportImage(list.id, "copy")}
+                      title={
+                        copiedImageListId === list.id ? "Copied image" : "Copy image"
+                      }
+                      type="button"
+                    >
+                      {exportingImageListId === list.id ? (
+                        <Loader2 size={16} />
+                      ) : copiedImageListId === list.id ? (
+                        <Check size={16} />
+                      ) : (
+                        <Copy size={16} />
+                      )}
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </section>
+        </>
       )}
     </>
   );

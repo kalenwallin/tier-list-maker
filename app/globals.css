@@ -633,6 +633,46 @@ button:disabled {
   gap: 16px;
 }
 
+.dashboard-layout-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.layout-switcher {
+  display: inline-flex;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.layout-switcher .layout-button {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.layout-switcher .layout-button:first-child {
+  border-radius: 8px 0 0 8px;
+}
+
+.layout-switcher .layout-button:last-child {
+  margin-left: -2px;
+  border-radius: 0 8px 8px 0;
+}
+
+.layout-switcher .layout-button[aria-pressed="true"],
+.compact-button[aria-pressed="true"] {
+  background: var(--panel-strong);
+  color: var(--panel);
+}
+
+.layout-switcher .layout-button:hover {
+  transform: none;
+  box-shadow: none;
+}
+
 .list-card {
   position: relative;
   display: grid;
@@ -667,6 +707,59 @@ button:disabled {
 
 .grid.has-wrapped-card-summary .list-card-details {
   min-height: 108px;
+}
+
+.grid.is-compact .list-card {
+  min-height: 0;
+}
+
+.grid.is-compact .list-card-details,
+.grid.is-compact.has-wrapped-card-summary .list-card-details {
+  min-height: 82px;
+}
+
+.grid.is-compact .mini-bars {
+  display: none;
+}
+
+.grid.is-list-layout {
+  grid-template-columns: 1fr;
+}
+
+.grid.is-list-layout .list-card {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  min-height: 0;
+  align-items: center;
+}
+
+.grid.is-list-layout .list-card-details,
+.grid.is-list-layout.has-wrapped-card-summary .list-card-details {
+  min-height: 0;
+}
+
+.grid.is-list-layout .list-card-title {
+  padding-right: 0;
+  -webkit-line-clamp: 1;
+}
+
+.grid.is-list-layout .list-card-description {
+  -webkit-line-clamp: 1;
+}
+
+.grid.is-list-layout .mini-bars {
+  grid-column: 1 / -1;
+}
+
+.grid.is-list-layout .list-card-item-count {
+  position: static;
+  grid-column: 2;
+  grid-row: 1;
+  transform: none;
+}
+
+.grid.is-list-layout .list-card .nav-actions {
+  grid-column: 3;
+  grid-row: 1;
 }
 
 .list-card-item-count {
@@ -866,6 +959,39 @@ button:disabled {
 
   .tile {
     width: 94px;
+  }
+
+  .dashboard-layout-controls {
+    flex-wrap: wrap;
+  }
+
+  .grid.is-list-layout .list-card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .grid.is-list-layout .list-card-details {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .grid.is-list-layout .list-card-title {
+    padding-right: 64px;
+  }
+
+  .grid.is-list-layout .list-card-item-count {
+    position: absolute;
+    top: 30px;
+    right: 14px;
+    transform: translateY(-50%);
+  }
+
+  .grid.is-list-layout .list-card .nav-actions {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .grid.is-list-layout .mini-bars {
+    grid-row: 3;
   }
 }
 
