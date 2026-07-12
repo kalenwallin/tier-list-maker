@@ -197,7 +197,7 @@ export function TierListPreview({
           ))}
         </div>
       </div>
-      {draggable || unranked.length > 0 ? (
+      {unranked.length > 0 ? (
         <div className="panel-pad item-tray-pad">
           <div
             className="item-tray"

@@ -356,6 +356,7 @@ export function DashboardClient() {
           >
             {lists.map((list) => {
               const description = list.description.trim();
+              const unplacedItems = list.items.filter((item) => !item.tierId);
 
               return (
                 <article className="list-card" key={list.id}>
@@ -422,6 +423,22 @@ export function DashboardClient() {
                         </div>
                       </div>
                     ))}
+                    <div className="dashboard-tier-preview-tray">
+                      {unplacedItems.map((item) => (
+                        <div
+                          className="dashboard-tier-preview-item"
+                          key={item.id}
+                          title={item.label}
+                        >
+                          {item.imageUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img alt="" src={item.imageUrl} />
+                          ) : (
+                            item.label.slice(0, 1).toUpperCase()
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                   <div className="nav-actions" style={{ justifyContent: "flex-start" }}>
                     <Link

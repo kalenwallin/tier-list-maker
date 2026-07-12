@@ -24,7 +24,6 @@
   --drop-a: #f5fff9;
   --drop-b: #e5fff2;
   --tile-media: #f0f0e8;
-  --tray: rgb(255 255 255 / 70%);
 }
 
 :root[data-theme="dark"] {
@@ -53,7 +52,6 @@
   --drop-a: #172b24;
   --drop-b: #1b382e;
   --tile-media: #29322d;
-  --tray: rgb(27 35 31 / 82%);
 }
 
 * {
@@ -599,7 +597,7 @@ button:disabled {
   margin-top: var(--item-tray-margin-top, 14px);
   border: 2px dashed var(--border);
   border-radius: 8px;
-  background: var(--tray);
+  background: var(--control);
   padding: var(--item-tray-padding, 12px);
 }
 
@@ -969,9 +967,10 @@ button:disabled {
 
 .dashboard-tier-preview {
   overflow: hidden;
+  align-self: start;
   border: 2px solid var(--border);
   border-radius: 8px;
-  background: var(--border);
+  background: var(--control);
 }
 
 .dashboard-tier-preview-row {
@@ -1001,8 +1000,21 @@ button:disabled {
   display: flex;
   min-width: 0;
   align-items: center;
-  flex-wrap: wrap;
+  overflow: hidden;
+  flex-wrap: nowrap;
   gap: 5px;
+  padding: 5px;
+}
+
+.dashboard-tier-preview-tray {
+  display: flex;
+  min-width: 0;
+  min-height: 42px;
+  align-items: center;
+  overflow: hidden;
+  flex-wrap: nowrap;
+  gap: 5px;
+  background: var(--control);
   padding: 5px;
 }
 
