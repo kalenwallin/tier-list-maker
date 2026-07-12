@@ -705,6 +705,10 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 
+.list-card-title.is-long {
+  font-size: 1.25rem;
+}
+
 .list-card-description {
   display: -webkit-box;
   margin: 8px 0 0;

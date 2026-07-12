@@ -338,7 +338,12 @@ export function DashboardClient() {
                 <p className="list-card-item-count">{list.items.length} items</p>
                 <div className="list-card-details list-card-summary">
                   <h2
-                    className="list-card-title"
+                    className={[
+                      "list-card-title",
+                      list.title.trim().length > 20 ? "is-long" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
                     data-list-card-summary-text
                     title={list.title}
                   >
