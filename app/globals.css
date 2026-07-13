@@ -508,6 +508,97 @@ button:disabled {
   pointer-events: none;
 }
 
+.remove-dialog {
+  width: min(440px, calc(100vw - 32px));
+  max-width: none;
+  overflow: visible;
+  margin: auto;
+  border: 0;
+  background: transparent;
+  color: var(--foreground);
+  padding: 0;
+}
+
+.remove-dialog::backdrop {
+  background: rgb(5 8 6 / 62%);
+  backdrop-filter: blur(4px);
+}
+
+.remove-dialog-card {
+  overflow: hidden;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: 7px 7px 0 var(--raised-shadow), var(--shadow);
+}
+
+.remove-dialog-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 22px;
+}
+
+.remove-dialog-icon {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 2px solid var(--danger-control-border);
+  border-radius: 8px;
+  background: var(--danger-control);
+  color: var(--danger-control-foreground);
+  box-shadow: 3px 3px 0 var(--danger-control-border);
+}
+
+.remove-dialog h2 {
+  margin: 1px 0 7px;
+  font-size: 1.35rem;
+}
+
+.remove-dialog p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.remove-dialog p strong {
+  color: var(--foreground);
+}
+
+.remove-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 2px solid var(--line);
+  background: var(--background);
+  padding: 16px 22px 19px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .remove-dialog[open] .remove-dialog-card {
+    animation: remove-dialog-in var(--duration-enter) ease-out both;
+  }
+}
+
+@keyframes remove-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+}
+
+@media (max-width: 480px) {
+  .remove-dialog-body {
+    padding: 18px;
+  }
+
+  .remove-dialog-actions {
+    padding: 14px 18px 17px;
+  }
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;

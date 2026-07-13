@@ -54,8 +54,11 @@ export function DashboardClient() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageExportRef = useRef<HTMLDivElement>(null);
   const listGridRef = useRef<HTMLElement>(null);
+  const removeDialogRef = useRef<HTMLDialogElement>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [isRemoving, setIsRemoving] = useState(false);
+  const [pendingRemovalId, setPendingRemovalId] = useState<string | null>(null);
   const [layout, setLayout] = useState<DashboardLayout>("cards");
   const [isCompact, setIsCompact] = useState(false);
   const [hasLoadedPreferences, setHasLoadedPreferences] = useState(false);
@@ -68,6 +71,7 @@ export function DashboardClient() {
   const copyStatusTimeoutRef = useRef<number | null>(null);
   const copyImageStatusTimeoutRef = useRef<number | null>(null);
   const activityGenerationRef = useRef(0);
+  const pendingRemovalList = lists?.find((list) => list.id === pendingRemovalId);
 
   useEffect(() => {
     try {
@@ -106,6 +110,20 @@ export function DashboardClient() {
     }
   }, [hasLoadedPreferences, isCompact, layout]);
 
+  useEffect(() => {
+    const dialog = removeDialogRef.current;
+    if (!dialog) return;
+
+    if (pendingRemovalList && !dialog.open) {
+      dialog.showModal();
+      return;
+    }
+
+    if (!pendingRemovalList && dialog.open) {
+      dialog.close();
+    }
+  }, [pendingRemovalList]);
+
   useLayoutEffect(() => {
     activityGenerationRef.current += 1;
 
@@ -123,6 +141,8 @@ export function DashboardClient() {
 
       setIsCreating(false);
       setIsImporting(false);
+      setIsRemoving(false);
+      setPendingRemovalId(null);
       setExportingImageListId(null);
       setSharingListId(null);
       setCopiedListId(null);
@@ -193,9 +213,29 @@ export function DashboardClient() {
     }
   }
 
-  async function remove(id: string) {
-    if (!confirm("Delete this tier list?")) return;
-    await removeList(id);
+  async function remove() {
+    if (!pendingRemovalId) return;
+
+    const activityGeneration = activityGenerationRef.current;
+    setIsRemoving(true);
+    setMessage(null);
+    try {
+      await removeList(pendingRemovalId);
+      if (activityGeneration === activityGenerationRef.current) {
+        setPendingRemovalId(null);
+      }
+    } catch (error) {
+      if (activityGeneration === activityGenerationRef.current) {
+        setMessage(
+          error instanceof Error ? error.message : "Could not remove that tier list.",
+        );
+        setPendingRemovalId(null);
+      }
+    } finally {
+      if (activityGeneration === activityGenerationRef.current) {
+        setIsRemoving(false);
+      }
+    }
   }
 
   async function share(id: string) {
@@ -351,6 +391,57 @@ export function DashboardClient() {
             ))}
         </div>
       ) : null}
+      <dialog
+        aria-labelledby="remove-dialog-title"
+        aria-describedby="remove-dialog-description"
+        className="remove-dialog"
+        onCancel={(event) => {
+          if (isRemoving) {
+            event.preventDefault();
+          }
+        }}
+        onClick={(event) => {
+          if (event.target === event.currentTarget && !isRemoving) {
+            removeDialogRef.current?.close();
+          }
+        }}
+        onClose={() => setPendingRemovalId(null)}
+        ref={removeDialogRef}
+      >
+        <div className="remove-dialog-card">
+          <div className="remove-dialog-body">
+            <span aria-hidden="true" className="remove-dialog-icon">
+              <Trash2 size={22} />
+            </span>
+            <div>
+              <h2 id="remove-dialog-title">Remove tier list?</h2>
+              <p id="remove-dialog-description">
+                <strong>{pendingRemovalList?.title}</strong>{" "}will be permanently removed.
+                This can&apos;t be undone.
+              </p>
+            </div>
+          </div>
+          <div className="remove-dialog-actions">
+            <button
+              className="button"
+              disabled={isRemoving}
+              onClick={() => removeDialogRef.current?.close()}
+              type="button"
+            >
+              Cancel
+            </button>
+            <button
+              className="button danger"
+              disabled={isRemoving}
+              onClick={() => void remove()}
+              type="button"
+            >
+              {isRemoving ? <Loader2 size={16} /> : <Trash2 size={16} />}
+              {isRemoving ? "Removing" : "Remove list"}
+            </button>
+          </div>
+        </div>
+      </dialog>
       <section className="toolbar">
         <div>
           <h1 style={{ margin: 0 }}>Your tier lists</h1>
@@ -561,7 +652,7 @@ export function DashboardClient() {
                       <button
                         className="button icon danger"
                         aria-label={`Delete ${list.title}`}
-                        onClick={() => void remove(list.id)}
+                        onClick={() => setPendingRemovalId(list.id)}
                         title="Delete"
                         type="button"
                       >
