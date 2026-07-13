@@ -3,6 +3,7 @@
 .env*.local
 .next/
 .open-next/
+dist/
 .wrangler/
 cloudflare-env.d.ts
 .convex/

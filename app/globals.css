@@ -1,9 +1,12 @@
 :root {
   --duration-exit: 150ms;
   --duration-enter: 210ms;
+  --duration-compact-exit: 90ms;
+  --duration-compact-enter: 120ms;
   --duration-item-move: 220ms;
   --duration-mode-change: 320ms;
   --duration-move: 400ms;
+  --transition-fade-opacity: 0.55;
   --background: #f7f7f2;
   --brand-outline: #111111;
   --foreground: #171717;
@@ -33,12 +36,28 @@
 
 @keyframes fade {
   from {
-    filter: blur(3px);
+    opacity: var(--transition-fade-opacity);
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes compact-tier-list-fade {
+  from {
     opacity: 0;
   }
   to {
-    filter: blur(0);
     opacity: 1;
+  }
+}
+
+@keyframes dashboard-preview-expand-down {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0);
   }
 }
 
@@ -115,6 +134,101 @@
     var(--duration-move) ease-in-out both slide reverse;
 }
 
+html:active-view-transition-type(nav-forward)::view-transition-old(route-content) {
+  --slide-offset: -60px;
+  animation:
+    var(--duration-exit) ease-in both fade reverse,
+    var(--duration-move) ease-in-out both slide reverse;
+}
+
+html:active-view-transition-type(nav-forward)::view-transition-old(
+  route-content-no-back-entry
+) {
+  animation: var(--duration-exit) ease-in both fade reverse;
+}
+
+html:active-view-transition-type(dashboard-tier-list-exit)::view-transition-old(
+  route-content-no-back-entry
+) {
+  display: none;
+}
+
+html:active-view-transition-type(nav-forward)::view-transition-new(route-content),
+html:active-view-transition-type(nav-forward)::view-transition-new(
+  route-content-no-back-entry
+) {
+  --slide-offset: 60px;
+  animation: var(--duration-move) ease-in-out both slide;
+}
+
+html:active-view-transition-type(dashboard-edit)::view-transition-new(route-content) {
+  animation: var(--duration-enter) ease-out both fade;
+}
+
+html:active-view-transition-type(nav-back)::view-transition-old(route-content),
+html:active-view-transition-type(nav-back)::view-transition-old(
+  route-content-no-back-entry
+) {
+  --slide-offset: 60px;
+  animation:
+    var(--duration-exit) ease-in both fade reverse,
+    var(--duration-move) ease-in-out both slide reverse;
+}
+
+html:active-view-transition-type(dashboard-edit-return)::view-transition-old(
+  route-content
+) {
+  animation: var(--duration-exit) ease-in both fade reverse;
+}
+
+html:active-view-transition-type(dashboard-edit-return)::view-transition-group(
+  edit-sidebar-return
+) {
+  animation: none;
+}
+
+html:active-view-transition-type(dashboard-edit-return)::view-transition-old(
+  edit-sidebar-return
+) {
+  display: none;
+}
+
+html:active-view-transition-type(nav-back)::view-transition-new(route-content) {
+  --slide-offset: -60px;
+  animation:
+    var(--duration-enter) ease-out var(--duration-exit) both fade,
+    var(--duration-move) ease-in-out both slide;
+}
+
+html:active-view-transition-type(nav-back)::view-transition-group(
+  route-content-no-back-entry
+),
+html:active-view-transition-type(nav-back)::view-transition-new(
+  route-content-no-back-entry
+) {
+  animation: none;
+}
+
+html:active-view-transition-type(compact-tier-list)::view-transition-old(
+  route-content
+),
+html:active-view-transition-type(compact-tier-list)::view-transition-old(
+  route-content-no-back-entry
+) {
+  animation: var(--duration-compact-exit) ease-in both compact-tier-list-fade
+    reverse;
+}
+
+html:active-view-transition-type(compact-tier-list)::view-transition-new(
+  route-content
+),
+html:active-view-transition-type(compact-tier-list)::view-transition-new(
+  route-content-no-back-entry
+) {
+  animation: var(--duration-compact-enter) ease-out var(--duration-compact-exit) both
+    compact-tier-list-fade;
+}
+
 ::view-transition-new(.nav-forward) {
   --slide-offset: 60px;
   animation: var(--duration-move) ease-in-out both slide;
@@ -138,8 +252,41 @@
   animation-duration: var(--duration-move);
 }
 
-::view-transition-image-pair(.morph) {
-  animation-name: via-blur;
+::view-transition-group(.tier-list-morph) {
+  z-index: 10;
+  animation-duration: var(--duration-move);
+}
+
+html:active-view-transition-type(nav-forward)::view-transition-group(
+  .tier-list-morph-detail
+),
+html:active-view-transition-type(nav-back)::view-transition-group(
+  .tier-list-morph-return
+) {
+  z-index: 1000;
+}
+
+::view-transition-old(.tier-list-morph) {
+  display: none;
+}
+
+::view-transition-new(.tier-list-morph) {
+  animation: none;
+}
+
+html:active-view-transition-type(dashboard-preview-expand)::view-transition-group(
+  .dashboard-preview-expand
+) {
+  overflow: clip;
+  animation-duration: var(--duration-mode-change);
+  transform-origin: top;
+}
+
+html:active-view-transition-type(dashboard-preview-expand)::view-transition-new(
+  .dashboard-preview-expand
+) {
+  animation: var(--duration-mode-change) ease-out both dashboard-preview-expand-down;
+  transform-origin: top;
 }
 
 ::view-transition-group(.mode-morph) {
@@ -235,19 +382,9 @@ html:active-view-transition-type(mode-to-edit)::view-transition-image-pair(
   animation-duration: var(--duration-item-move);
 }
 
-::view-transition-image-pair(.item-morph) {
-  animation-name: via-blur;
-}
-
-@keyframes via-blur {
-  30% {
-    filter: blur(3px);
-  }
-}
-
 @keyframes collapse-empty-tray-up {
   to {
-    opacity: 0;
+    opacity: var(--transition-fade-opacity);
     transform: scaleY(0);
   }
 }
@@ -263,7 +400,7 @@ html:active-view-transition-type(mode-to-edit)::view-transition-image-pair(
 
 @keyframes expand-empty-tray-down {
   from {
-    opacity: 0;
+    opacity: var(--transition-fade-opacity);
     transform: scaleY(0);
   }
 }
@@ -306,14 +443,14 @@ html:active-view-transition-type(mode-to-edit)::view-transition-image-pair(
   }
   to {
     transform: scale(0.85);
-    opacity: 0;
+    opacity: var(--transition-fade-opacity);
   }
 }
 
 @keyframes scale-up {
   from {
     transform: scale(0.85);
-    opacity: 0;
+    opacity: var(--transition-fade-opacity);
   }
   to {
     transform: scale(1);
@@ -377,6 +514,10 @@ html:active-view-transition-type(mode-change) .topbar {
 
 * {
   box-sizing: border-box;
+}
+
+html {
+  scrollbar-gutter: stable;
 }
 
 html,
@@ -466,6 +607,10 @@ button:disabled {
 
 .topbar-action-slot {
   display: contents;
+}
+
+.mode-toggle-button {
+  min-width: 106px;
 }
 
 .button {

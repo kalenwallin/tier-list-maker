@@ -1,6 +1,7 @@
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
-import { fetchQuery } from "convex/nextjs";
+import { ConvexHttpClient } from "convex/browser";
+import { getPublicEnv } from "./site-url";
 
 export type SharedTierList = Doc<"tierLists">;
 
@@ -11,7 +12,12 @@ export async function getSharedTierList(shareId: string) {
   if (!shareId.trim()) return null;
 
   try {
-    return await fetchQuery(api.tierLists.getShared, { shareId });
+    const convexUrl = getPublicEnv("NEXT_PUBLIC_CONVEX_URL");
+    if (!convexUrl) return null;
+
+    return await new ConvexHttpClient(convexUrl).query(api.tierLists.getShared, {
+      shareId,
+    });
   } catch {
     return null;
   }

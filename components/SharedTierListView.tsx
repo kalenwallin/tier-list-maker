@@ -1,9 +1,9 @@
 "use client";
 
-import { useAuth } from "@workos-inc/authkit-nextjs/components";
+import { useAuth } from "@workos/authkit-tanstack-react-start/client";
+import { Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { Check, Copy, Loader2, Pencil } from "lucide-react";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { api } from "@/convex/_generated/api";
@@ -59,7 +59,11 @@ export function SharedTierListView({ shareId }: { shareId: string }) {
       <section className="panel panel-pad">
         <h1>Shared tier list not found</h1>
         <p className="muted">The link may have been removed or copied incorrectly.</p>
-        <Link className="button" href="/" transitionTypes={["nav-back"]}>
+        <Link
+          className="button"
+          to="/"
+          viewTransition={{ types: ["nav-back"] }}
+        >
           Make your own
         </Link>
       </section>
@@ -74,8 +78,10 @@ export function SharedTierListView({ shareId }: { shareId: string }) {
               {canEdit ? (
                 <Link
                   className="button"
-                  href={`/lists/${list._id}`}
-                  transitionTypes={["nav-back"]}
+                  params={{ id: list._id }}
+                  search={{ mode: undefined }}
+                  to="/lists/$id"
+                  viewTransition={{ types: ["nav-back"] }}
                 >
                   <Pencil size={16} /> Edit
                 </Link>
@@ -104,7 +110,11 @@ export function SharedTierListView({ shareId }: { shareId: string }) {
         viewTransitionName={`tier-list-${list._id}`}
       />
       <div className="nav-actions shared-actions">
-        <Link className="button primary" href="/dashboard" transitionTypes={["nav-back"]}>
+        <Link
+          className="button primary"
+          to="/dashboard"
+          viewTransition={{ types: ["nav-back"] }}
+        >
           Make your own
         </Link>
       </div>

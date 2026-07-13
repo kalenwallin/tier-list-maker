@@ -14,9 +14,9 @@ import {
   Trash2,
   Upload,
 } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
+  addTransitionType,
   ChangeEvent,
   startTransition,
   useEffect,
@@ -31,12 +31,27 @@ import {
   renderTierListPng,
   waitForNextFrame,
 } from "@/lib/image-export";
+import type { StoredTierList } from "@/lib/db";
 import { useTierLists } from "@/lib/use-tier-lists";
 import { TierListPreview } from "./TierListPreview";
 
 const DASHBOARD_PREFERENCES_KEY = "tier-list-maker-dashboard-preferences-v1";
 
 type DashboardLayout = "cards" | "list";
+
+type DashboardSnapshot = {
+  activeMorphListId: string;
+  hasWrappedCardSummary: boolean;
+  isCompact: boolean;
+  layout: DashboardLayout;
+  lists: StoredTierList[];
+  ownerEmail: string | undefined;
+  scrollY: number;
+};
+
+// This module lives for the lifetime of the client bundle, so route remounts can
+// synchronously recreate the shared element before TanStack captures the new view.
+let dashboardSnapshot: DashboardSnapshot | null = null;
 
 export function DashboardClient() {
   const {
@@ -50,7 +65,7 @@ export function DashboardClient() {
     exportData,
     importData,
   } = useTierLists();
-  const router = useRouter();
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageExportRef = useRef<HTMLDivElement>(null);
   const listGridRef = useRef<HTMLElement>(null);
@@ -59,10 +74,20 @@ export function DashboardClient() {
   const [isImporting, setIsImporting] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
   const [pendingRemovalId, setPendingRemovalId] = useState<string | null>(null);
-  const [layout, setLayout] = useState<DashboardLayout>("cards");
-  const [isCompact, setIsCompact] = useState(false);
+  const [initialSnapshot] = useState(() => {
+    return dashboardSnapshot?.ownerEmail === ownerEmail
+      ? dashboardSnapshot
+      : null;
+  });
+  const initialSnapshotRef = useRef(initialSnapshot);
+  const [layout, setLayout] = useState<DashboardLayout>(
+    initialSnapshot?.layout ?? "cards",
+  );
+  const [isCompact, setIsCompact] = useState(initialSnapshot?.isCompact ?? false);
   const [hasLoadedPreferences, setHasLoadedPreferences] = useState(false);
-  const [hasWrappedCardSummary, setHasWrappedCardSummary] = useState(false);
+  const [hasWrappedCardSummary, setHasWrappedCardSummary] = useState(
+    initialSnapshot?.hasWrappedCardSummary ?? false,
+  );
   const [exportingImageListId, setExportingImageListId] = useState<string | null>(null);
   const [sharingListId, setSharingListId] = useState<string | null>(null);
   const [copiedListId, setCopiedListId] = useState<string | null>(null);
@@ -71,7 +96,19 @@ export function DashboardClient() {
   const copyStatusTimeoutRef = useRef<number | null>(null);
   const copyImageStatusTimeoutRef = useRef<number | null>(null);
   const activityGenerationRef = useRef(0);
-  const pendingRemovalList = lists?.find((list) => list.id === pendingRemovalId);
+  const dashboardLists = lists ?? initialSnapshot?.lists;
+  const pendingRemovalList = dashboardLists?.find(
+    (list) => list.id === pendingRemovalId,
+  );
+
+  useLayoutEffect(() => {
+    const snapshot = initialSnapshotRef.current;
+    if (!snapshot) return;
+
+    window.scrollTo({ top: snapshot.scrollY });
+    if (dashboardSnapshot === snapshot) dashboardSnapshot = null;
+    initialSnapshotRef.current = null;
+  }, []);
 
   useEffect(() => {
     try {
@@ -151,6 +188,7 @@ export function DashboardClient() {
     };
   }, []);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Re-measure after list content or layout changes.
   useEffect(() => {
     const grid = listGridRef.current;
     if (!grid) {
@@ -197,7 +235,28 @@ export function DashboardClient() {
       isActive = false;
       resizeObserver.disconnect();
     };
-  }, [lists, layout]);
+  }, [dashboardLists, layout]);
+
+  function rememberDashboardState(activeMorphListId: string) {
+    if (!dashboardLists) return;
+
+    dashboardSnapshot = {
+      activeMorphListId,
+      hasWrappedCardSummary,
+      isCompact,
+      layout,
+      lists: dashboardLists,
+      ownerEmail,
+      scrollY: window.scrollY,
+    };
+  }
+
+  function toggleCompact() {
+    startTransition(() => {
+      if (isCompact) addTransitionType("dashboard-preview-expand");
+      setIsCompact((current) => !current);
+    });
+  }
 
   async function create() {
     const activityGeneration = activityGenerationRef.current;
@@ -205,7 +264,12 @@ export function DashboardClient() {
     try {
       const id = await createList("New tier list");
       if (activityGeneration !== activityGenerationRef.current) return;
-      router.push(`/lists/${id}`, { transitionTypes: ["nav-forward"] });
+      void navigate({
+        to: "/lists/$id",
+        params: { id },
+        search: { mode: undefined },
+        viewTransition: { types: ["nav-forward"] },
+      });
     } finally {
       if (activityGeneration === activityGenerationRef.current) {
         setIsCreating(false);
@@ -289,7 +353,7 @@ export function DashboardClient() {
   }
 
   async function exportImage(listId: string, action: "download" | "copy") {
-    const list = lists?.find((candidate) => candidate.id === listId);
+    const list = dashboardLists?.find((candidate) => candidate.id === listId);
     if (!list) return;
 
     const activityGeneration = activityGenerationRef.current;
@@ -364,7 +428,7 @@ export function DashboardClient() {
     }
   }
 
-  if (lists === undefined) {
+  if (dashboardLists === undefined) {
     return (
       <div className="panel panel-pad">
         <Loader2 size={18} /> Loading tier lists
@@ -376,7 +440,7 @@ export function DashboardClient() {
     <>
       {exportingImageListId ? (
         <div className="dashboard-export-stage" aria-hidden="true">
-          {lists
+          {dashboardLists
             .filter((list) => list.id === exportingImageListId)
             .map((list) => (
               <TierListPreview
@@ -402,6 +466,11 @@ export function DashboardClient() {
         }}
         onClick={(event) => {
           if (event.target === event.currentTarget && !isRemoving) {
+            removeDialogRef.current?.close();
+          }
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Escape" && !isRemoving) {
             removeDialogRef.current?.close();
           }
         }}
@@ -487,7 +556,7 @@ export function DashboardClient() {
       ) : null}
       {message ? <p className="backup-message">{message}</p> : null}
 
-      {lists.length === 0 ? (
+      {dashboardLists.length === 0 ? (
         <section className="panel panel-pad">
           <h2>No lists yet</h2>
           <p className="muted">
@@ -523,7 +592,7 @@ export function DashboardClient() {
             <button
               aria-pressed={isCompact}
               className="button compact-button"
-              onClick={() => startTransition(() => setIsCompact((current) => !current))}
+              onClick={toggleCompact}
               type="button"
             >
               <Minimize2 size={16} /> Compact
@@ -540,7 +609,7 @@ export function DashboardClient() {
               .join(" ")}
             ref={listGridRef}
           >
-            {lists.map((list) => {
+            {dashboardLists.map((list) => {
               const description = list.description.trim();
               const unplacedItems = list.items.filter((item) => !item.tierId);
 
@@ -556,8 +625,21 @@ export function DashboardClient() {
                     <Link
                       aria-label={`Open preview for ${list.title}`}
                       className="list-card-preview-link"
-                      href={`/lists/${list.id}?mode=preview`}
-                      transitionTypes={["nav-forward"]}
+                      params={{ id: list.id }}
+                      search={{ mode: "preview" }}
+                      state={(previous) => ({
+                        ...previous,
+                        dashboardCompactMode: isCompact,
+                        dashboardMorphId: list.id,
+                        dashboardMorphList: list,
+                      })}
+                      to="/lists/$id"
+                      onClick={() => rememberDashboardState(list.id)}
+                      viewTransition={{
+                        types: isCompact
+                          ? ["compact-tier-list"]
+                          : ["nav-forward", "dashboard-tier-list-exit"],
+                      }}
                     >
                       <span className="visually-hidden">Open preview</span>
                     </Link>
@@ -589,6 +671,17 @@ export function DashboardClient() {
                       aria-hidden="true"
                       className="dashboard-tier-preview list-card-summary"
                       style={{
+                        viewTransitionClass: isCompact
+                          ? undefined
+                          : [
+                              "tier-list-morph",
+                              "dashboard-preview-expand",
+                              initialSnapshot?.activeMorphListId === list.id
+                                ? "tier-list-morph-return"
+                                : undefined,
+                            ]
+                              .filter(Boolean)
+                              .join(" "),
                         viewTransitionName: isCompact
                           ? undefined
                           : `tier-list-${list.id}`,
@@ -612,7 +705,6 @@ export function DashboardClient() {
                                   title={item.label}
                                 >
                                   {item.imageUrl ? (
-                                    // eslint-disable-next-line @next/next/no-img-element
                                     <img alt="" src={item.imageUrl} />
                                   ) : (
                                     item.label.slice(0, 1).toUpperCase()
@@ -630,7 +722,6 @@ export function DashboardClient() {
                             title={item.label}
                           >
                             {item.imageUrl ? (
-                              // eslint-disable-next-line @next/next/no-img-element
                               <img alt="" src={item.imageUrl} />
                             ) : (
                               item.label.slice(0, 1).toUpperCase()
@@ -643,9 +734,26 @@ export function DashboardClient() {
                       <Link
                         aria-label={`Edit ${list.title}`}
                         className="button icon"
-                        href={`/lists/${list.id}`}
+                        params={{ id: list.id }}
+                        search={{ mode: undefined }}
+                        state={(previous) => ({
+                          ...previous,
+                          dashboardCompactMode: isCompact,
+                          dashboardMorphId: list.id,
+                          dashboardMorphList: list,
+                        })}
                         title="Edit"
-                        transitionTypes={["nav-forward"]}
+                        to="/lists/$id"
+                        onClick={() => rememberDashboardState(list.id)}
+                        viewTransition={{
+                          types: isCompact
+                            ? ["compact-tier-list"]
+                            : [
+                                "nav-forward",
+                                "dashboard-edit",
+                                "dashboard-tier-list-exit",
+                              ],
+                        }}
                       >
                         <Pencil size={16} />
                       </Link>

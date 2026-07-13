@@ -1,13 +1,13 @@
 "use client";
 
 import { useTierLists } from "@/lib/use-tier-lists";
+import { useNavigate } from "@tanstack/react-router";
 import { FilePlus2, Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 export function NewTierListClient() {
   const { lists, createList } = useTierLists();
-  const router = useRouter();
+  const navigate = useNavigate();
   const hasStartedCreate = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -18,7 +18,13 @@ export function NewTierListClient() {
     async function createAndOpenList() {
       try {
         const id = await createList("New tier list");
-        router.replace(`/lists/${id}`, { transitionTypes: ["nav-forward"] });
+        void navigate({
+          to: "/lists/$id",
+          params: { id },
+          search: { mode: undefined },
+          replace: true,
+          viewTransition: { types: ["nav-forward"] },
+        });
       } catch {
         setError("Could not create a new tier list.");
         hasStartedCreate.current = false;
@@ -26,7 +32,7 @@ export function NewTierListClient() {
     }
 
     void createAndOpenList();
-  }, [createList, error, lists, router]);
+  }, [createList, error, lists, navigate]);
 
   return (
     <section className="panel panel-pad">

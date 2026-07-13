@@ -1,8 +1,13 @@
-import { HomeClient } from "@/components/HomeClient";
+import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { DirectionalTransition } from "@/components/DirectionalTransition";
+import { HomeClient } from "@/components/HomeClient";
 
-export default function Home() {
+export const Route = createFileRoute("/")({
+  component: HomePage,
+});
+
+function HomePage() {
   return (
     <DirectionalTransition>
       <AppShell

@@ -1,8 +1,8 @@
 "use client";
 
-import { useAuth } from "@workos-inc/authkit-nextjs/components";
+import { useAuth } from "@workos/authkit-tanstack-react-start/client";
+import { useNavigate } from "@tanstack/react-router";
 import { Cloud, Download, FilePlus2, HardDrive, Loader2, Share2 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useTierLists } from "@/lib/use-tier-lists";
 import { DEFAULT_TIERS, STARTER_ITEMS, type TierItem } from "@/lib/tier-list";
@@ -22,19 +22,27 @@ const SAMPLE_ITEMS: TierItem[] = [
 export function HomeClient() {
   const { user, loading } = useAuth();
   const { createList } = useTierLists();
-  const router = useRouter();
+  const navigate = useNavigate();
   const [isCreating, setIsCreating] = useState(false);
 
   async function getStarted() {
     if (user) {
-      router.push("/dashboard", { transitionTypes: ["nav-forward"] });
+      void navigate({
+        to: "/dashboard",
+        viewTransition: { types: ["nav-forward"] },
+      });
       return;
     }
 
     setIsCreating(true);
     try {
       const id = await createList("New tier list");
-      router.push(`/lists/${id}`, { transitionTypes: ["nav-forward"] });
+      void navigate({
+        to: "/lists/$id",
+        params: { id },
+        search: { mode: undefined },
+        viewTransition: { types: ["nav-forward"] },
+      });
     } finally {
       setIsCreating(false);
     }

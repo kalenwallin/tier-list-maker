@@ -11,8 +11,7 @@ import {
   Share2,
   Trash2,
 } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
   addTransitionType,
   startTransition,
@@ -30,15 +29,28 @@ import { useTierList } from "@/lib/use-tier-lists";
 import { TierListPreview } from "./TierListPreview";
 
 export function TierListEditor({
+  compactDashboardTransition = false,
   id,
+  initialList,
+  morphOnMount = false,
   previewMode = false,
 }: {
+  compactDashboardTransition?: boolean;
   id: string;
+  initialList?: StoredTierList;
+  morphOnMount?: boolean;
   previewMode?: boolean;
 }) {
-  const { list, syncMode, shareUrl, saveList, removeList, createShareLink } =
-    useTierList(id);
-  const router = useRouter();
+  const {
+    list: queriedList,
+    syncMode,
+    shareUrl,
+    saveList,
+    removeList,
+    createShareLink,
+  } = useTierList(id);
+  const list = queriedList === undefined ? initialList : queriedList;
+  const navigate = useNavigate();
   const exportRef = useRef<HTMLDivElement>(null);
   const removeDialogRef = useRef<HTMLDialogElement>(null);
   const modeTransitionFrameRef = useRef<HTMLDivElement>(null);
@@ -55,12 +67,15 @@ export function TierListEditor({
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
+  const [isNavigatingToDashboard, setIsNavigatingToDashboard] = useState(false);
   const [removeError, setRemoveError] = useState<string | null>(null);
   const [isPreviewMode, setIsPreviewMode] = useState(previewMode);
   const [keepEmptyTrayDuringModeChange, setKeepEmptyTrayDuringModeChange] =
     useState(false);
   const [routeMorphName, setRouteMorphName] = useState<string | undefined>(
-    previewMode ? `tier-list-${id}` : undefined,
+    !compactDashboardTransition && (previewMode || morphOnMount)
+      ? `tier-list-${id}`
+      : undefined,
   );
   const [saveStatus, setSaveStatus] = useState("Saved");
   const [shareStatus, setShareStatus] = useState("Copy link");
@@ -183,7 +198,19 @@ export function TierListEditor({
     try {
       await removeList();
       removeDialogRef.current?.close();
-      router.push("/dashboard", { transitionTypes: ["nav-back"] });
+      if (!isPreviewMode) {
+        flushSync(() => setIsNavigatingToDashboard(true));
+      }
+      void navigate({
+        to: "/dashboard",
+        viewTransition: {
+          types: compactDashboardTransition
+            ? ["compact-tier-list"]
+            : isPreviewMode
+              ? ["nav-back"]
+              : ["nav-back", "dashboard-edit-return"],
+        },
+      });
     } catch (error) {
       isRemovingRef.current = false;
       setRemoveError(
@@ -243,10 +270,22 @@ export function TierListEditor({
   }
 
   function navigateToDashboard() {
-    setRouteMorphName(`tier-list-${id}`);
+    flushSync(() => {
+      setRouteMorphName(
+        compactDashboardTransition ? undefined : `tier-list-${id}`,
+      );
+      if (!isPreviewMode) setIsNavigatingToDashboard(true);
+    });
 
-    window.requestAnimationFrame(() => {
-      router.push("/dashboard", { transitionTypes: ["nav-back"] });
+    void navigate({
+      to: "/dashboard",
+      viewTransition: {
+        types: compactDashboardTransition
+          ? ["compact-tier-list"]
+          : isPreviewMode
+            ? ["nav-back"]
+            : ["nav-back", "dashboard-edit-return"],
+      },
     });
   }
 
@@ -327,7 +366,11 @@ export function TierListEditor({
     return (
       <section className="panel panel-pad">
         <h1>Tier list not found</h1>
-        <Link className="button" href="/dashboard" transitionTypes={["nav-back"]}>
+        <Link
+          className="button"
+          to="/dashboard"
+          viewTransition={{ types: ["nav-back"] }}
+        >
           Back to dashboard
         </Link>
       </section>
@@ -351,6 +394,11 @@ export function TierListEditor({
         }}
         onClick={(event) => {
           if (event.target === event.currentTarget && !isRemoving) {
+            removeDialogRef.current?.close();
+          }
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Escape" && !isRemoving) {
             removeDialogRef.current?.close();
           }
         }}
@@ -409,14 +457,18 @@ export function TierListEditor({
             <>
               {isPreviewMode ? (
                 <button
-                  className="button"
+                  className="button mode-toggle-button"
                   onClick={() => changeMode(false)}
                   type="button"
                 >
                   <Pencil size={16} /> Edit
                 </button>
               ) : (
-                <button className="button" onClick={() => changeMode(true)} type="button">
+                <button
+                  className="button mode-toggle-button"
+                  onClick={() => changeMode(true)}
+                  type="button"
+                >
                   <Eye size={16} /> Preview
                 </button>
               )}
@@ -472,7 +524,14 @@ export function TierListEditor({
         : null}
       <div className={isPreviewMode ? "shared-view" : "split"}>
         {isPreviewMode ? null : (
-          <aside className="panel panel-pad editor-controls">
+          <aside
+            className="panel panel-pad editor-controls"
+            style={{
+              viewTransitionName: isNavigatingToDashboard
+                ? "edit-sidebar-return"
+                : undefined,
+            }}
+          >
             <div className="toolbar">
               <h1 style={{ margin: 0 }}>Edit</h1>
               <span className="save-status">

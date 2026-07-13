@@ -2,9 +2,10 @@
 
 import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { ReactNode, useMemo } from "react";
+import { getPublicEnv } from "@/lib/site-url";
 
 export function ConvexClientProvider({ children }: { children: ReactNode }) {
-  const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+  const convexUrl = getPublicEnv("NEXT_PUBLIC_CONVEX_URL");
   const convex = useMemo(
     () => (convexUrl ? new ConvexReactClient(convexUrl) : null),
     [convexUrl],

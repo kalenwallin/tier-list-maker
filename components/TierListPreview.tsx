@@ -62,6 +62,7 @@ export function TierListPreview({
   const hasHeaderContent = Boolean(title || hasDescription);
   const marketingUrl = getMarketingUrl();
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Re-measure when rendered copy changes.
   useLayoutEffect(() => {
     if (!expandableHeader || isExporting) {
       setHeaderCanExpand(false);
@@ -99,12 +100,12 @@ export function TierListPreview({
     return () => observer.disconnect();
   }, [expandableHeader, isExporting, title, trimmedDescription]);
 
-  function allowDrop(event: DragEvent<HTMLDivElement>) {
+  function allowDrop(event: DragEvent<HTMLElement>) {
     event.preventDefault();
     event.currentTarget.classList.add("drop-target");
   }
 
-  function leaveDrop(event: DragEvent<HTMLDivElement>) {
+  function leaveDrop(event: DragEvent<HTMLElement>) {
     event.currentTarget.classList.remove("drop-target");
   }
 
@@ -117,7 +118,12 @@ export function TierListPreview({
       ]
         .filter(Boolean)
         .join(" ")}
-      style={{ viewTransitionName }}
+      style={{
+        viewTransitionClass: viewTransitionName
+          ? "tier-list-morph tier-list-morph-detail"
+          : undefined,
+        viewTransitionName,
+      }}
     >
       <div
         ref={exportRef}
@@ -218,7 +224,7 @@ export function TierListPreview({
                 : undefined,
           }}
         >
-          <div
+          <section
             aria-label="Unranked item tray"
             className="item-tray"
             data-export-exclude="true"
@@ -246,7 +252,7 @@ export function TierListPreview({
                 transitionNamespace={transitionNamespace}
               />
             ))}
-          </div>
+          </section>
         </div>
       ) : null}
     </section>
@@ -354,7 +360,6 @@ function Tile({
     >
       <div className="tile-media">
         {item.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img alt="" src={item.imageUrl} />
         ) : (
           item.label.slice(0, 1).toUpperCase()

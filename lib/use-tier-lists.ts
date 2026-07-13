@@ -2,7 +2,7 @@
 
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { useAuth } from "@workos-inc/authkit-nextjs/components";
+import { useAuth } from "@workos/authkit-tanstack-react-start/client";
 import { useMutation, useQuery } from "convex/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {

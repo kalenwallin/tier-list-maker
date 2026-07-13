@@ -1,7 +1,7 @@
 "use client";
 
-import { useAuth } from "@workos-inc/authkit-nextjs/components";
-import Link from "next/link";
+import { useAuth } from "@workos/authkit-tanstack-react-start/client";
+import { Link } from "@tanstack/react-router";
 
 export function AuthNav({
   hideSignOut = false,
@@ -44,8 +44,8 @@ export function AuthNav({
       {signedOutPrimaryHref === "/lists/new" ? (
         <Link
           className="button primary"
-          href={signedOutPrimaryHref}
-          transitionTypes={["nav-forward"]}
+          to="/lists/new"
+          viewTransition={{ types: ["nav-forward"] }}
         >
           {signedOutPrimaryLabel}
         </Link>

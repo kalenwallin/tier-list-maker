@@ -6,6 +6,8 @@
       "!node_modules",
       "!.next",
       "!.open-next",
+      "!dist",
+      "!src/routeTree.gen.ts",
       "!.wrangler",
       "!.pnpm-store",
       "!convex/_generated"

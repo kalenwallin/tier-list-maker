@@ -5,7 +5,7 @@ import {
 } from "@/lib/share-metadata";
 import { getSiteUrl } from "@/lib/site-url";
 import { DEFAULT_TIERS, type Tier } from "@/lib/tier-list";
-import { ImageResponse } from "next/og";
+import { ImageResponse } from "@vercel/og";
 
 export const size = {
   width: 1200,
@@ -14,12 +14,7 @@ export const size = {
 
 export const contentType = "image/png";
 
-type OpenGraphImageProps = {
-  params: Promise<{ shareId: string }>;
-};
-
-export default async function OpenGraphImage({ params }: OpenGraphImageProps) {
-  const { shareId } = await params;
+export async function renderShareOpenGraphImage(shareId: string) {
   const list = await getSharedTierList(shareId);
   const title = truncateText(list?.title || "Shared tier list", 28);
   const description = truncateText(getShareDescription(list), 78);
