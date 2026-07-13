@@ -165,8 +165,70 @@
 
 ::view-transition-new(.mode-frame-morph) {
   animation: none;
-  height: 100%;
+  height: var(--mode-frame-height);
   object-fit: fill;
+}
+
+html:active-view-transition-type(mode-to-preview)::view-transition-group(
+  mode-empty-item-tray
+) {
+  animation-duration: var(--duration-mode-change);
+  overflow: clip;
+  transform-origin: top;
+}
+
+html:active-view-transition-type(mode-to-preview)::view-transition-old(
+  mode-empty-item-tray
+) {
+  animation: var(--duration-mode-change) ease both collapse-empty-tray-up;
+  transform-origin: top;
+}
+
+html:active-view-transition-type(mode-to-preview)::view-transition-new(
+  mode-empty-item-tray
+) {
+  display: none;
+}
+
+html:active-view-transition-type(mode-to-preview)::view-transition-image-pair(
+  .mode-frame-morph
+) {
+  overflow: clip;
+  box-sizing: border-box;
+  border-bottom: 2px solid var(--border);
+  border-radius: 0 0 8px 8px;
+  animation: var(--duration-mode-change) ease both collapse-empty-tray-area;
+}
+
+html:active-view-transition-type(mode-to-edit)::view-transition-group(
+  mode-empty-item-tray
+) {
+  animation-duration: var(--duration-mode-change);
+  overflow: clip;
+  transform-origin: top;
+}
+
+html:active-view-transition-type(mode-to-edit)::view-transition-old(
+  mode-empty-item-tray
+) {
+  display: none;
+}
+
+html:active-view-transition-type(mode-to-edit)::view-transition-new(
+  mode-empty-item-tray
+) {
+  animation: var(--duration-mode-change) ease both expand-empty-tray-down;
+  transform-origin: top;
+}
+
+html:active-view-transition-type(mode-to-edit)::view-transition-image-pair(
+  .mode-frame-morph
+) {
+  overflow: clip;
+  box-sizing: border-box;
+  border-bottom: 2px solid var(--border);
+  border-radius: 0 0 8px 8px;
+  animation: var(--duration-mode-change) ease both expand-empty-tray-area;
 }
 
 ::view-transition-group(.item-morph) {
@@ -180,6 +242,38 @@
 @keyframes via-blur {
   30% {
     filter: blur(3px);
+  }
+}
+
+@keyframes collapse-empty-tray-up {
+  to {
+    opacity: 0;
+    transform: scaleY(0);
+  }
+}
+
+@keyframes collapse-empty-tray-area {
+  from {
+    height: var(--mode-frame-height);
+  }
+  to {
+    height: calc(var(--mode-frame-height) - var(--mode-empty-tray-height));
+  }
+}
+
+@keyframes expand-empty-tray-down {
+  from {
+    opacity: 0;
+    transform: scaleY(0);
+  }
+}
+
+@keyframes expand-empty-tray-area {
+  from {
+    height: calc(var(--mode-frame-height) - var(--mode-empty-tray-height));
+  }
+  to {
+    height: var(--mode-frame-height);
   }
 }
 
@@ -238,6 +332,10 @@
 
 ::view-transition-new(persistent-nav) {
   animation: none;
+}
+
+html:active-view-transition-type(mode-change) .topbar {
+  view-transition-name: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -338,10 +436,12 @@ button:disabled {
 
 .brand {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   gap: 12px;
   font-weight: 800;
   letter-spacing: 0;
+  white-space: nowrap;
 }
 
 .brand-mark {
@@ -565,6 +665,12 @@ button:disabled {
 
 .remove-dialog p strong {
   color: var(--foreground);
+}
+
+.remove-dialog .remove-dialog-error {
+  margin-top: 10px;
+  color: var(--danger-control-foreground);
+  font-weight: 700;
 }
 
 .remove-dialog-actions {

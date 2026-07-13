@@ -22,7 +22,7 @@ import {
   useState,
   ViewTransition,
 } from "react";
-import { createPortal } from "react-dom";
+import { createPortal, flushSync } from "react-dom";
 import { StoredTierList } from "@/lib/db";
 import { copyPngToClipboard, downloadPng, renderTierListPng } from "@/lib/image-export";
 import { createId, moveItem, sortItemsByTier, Tier, TierItem } from "@/lib/tier-list";
@@ -36,14 +36,17 @@ export function TierListEditor({
   id: string;
   previewMode?: boolean;
 }) {
-  const { list, syncMode, shareUrl, saveList, createShareLink } = useTierList(id);
+  const { list, syncMode, shareUrl, saveList, removeList, createShareLink } =
+    useTierList(id);
   const router = useRouter();
   const exportRef = useRef<HTMLDivElement>(null);
+  const removeDialogRef = useRef<HTMLDialogElement>(null);
   const modeTransitionFrameRef = useRef<HTMLDivElement>(null);
   const draggedItemId = useRef<string | null>(null);
   const hydratedListId = useRef<string | null>(null);
   const lastSavedSnapshot = useRef("");
   const skipAutosave = useRef(true);
+  const isRemovingRef = useRef(false);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -51,7 +54,11 @@ export function TierListEditor({
   const [items, setItems] = useState<TierItem[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isRemoving, setIsRemoving] = useState(false);
+  const [removeError, setRemoveError] = useState<string | null>(null);
   const [isPreviewMode, setIsPreviewMode] = useState(previewMode);
+  const [keepEmptyTrayDuringModeChange, setKeepEmptyTrayDuringModeChange] =
+    useState(false);
   const [routeMorphName, setRouteMorphName] = useState<string | undefined>(
     previewMode ? `tier-list-${id}` : undefined,
   );
@@ -92,7 +99,7 @@ export function TierListEditor({
   }, [list, syncMode]);
 
   useEffect(() => {
-    if (!list) return;
+    if (!list || isRemoving) return;
 
     const snapshot = createSnapshot({ title, description, tiers, items });
     if (snapshot === lastSavedSnapshot.current) return;
@@ -104,6 +111,7 @@ export function TierListEditor({
 
     setSaveStatus("Unsaved changes");
     const timeoutId = window.setTimeout(async () => {
+      if (isRemovingRef.current) return;
       setIsSaving(true);
       setSaveStatus("Saving");
       try {
@@ -116,7 +124,7 @@ export function TierListEditor({
     }, 350);
 
     return () => window.clearTimeout(timeoutId);
-  }, [description, items, list, saveList, syncMode, tiers, title]);
+  }, [description, isRemoving, items, list, saveList, syncMode, tiers, title]);
 
   useEffect(() => {
     if (!routeMorphName) return;
@@ -167,8 +175,31 @@ export function TierListEditor({
     }
   }
 
+  async function removeTierList() {
+    isRemovingRef.current = true;
+    setIsRemoving(true);
+    setRemoveError(null);
+
+    try {
+      await removeList();
+      removeDialogRef.current?.close();
+      router.push("/dashboard", { transitionTypes: ["nav-back"] });
+    } catch (error) {
+      isRemovingRef.current = false;
+      setRemoveError(
+        error instanceof Error ? error.message : "Could not remove this tier list.",
+      );
+      setIsRemoving(false);
+    }
+  }
+
   function changeMode(nextPreviewMode: boolean) {
     const applyMode = () => {
+      const trayIsEmpty = items.every((item) => item.tierId);
+      if (trayIsEmpty) {
+        flushSync(() => setKeepEmptyTrayDuringModeChange(true));
+      }
+
       const frameHeight = modeTransitionFrameRef.current?.getBoundingClientRect().height;
       if (frameHeight) {
         document.documentElement.style.setProperty(
@@ -177,8 +208,21 @@ export function TierListEditor({
         );
       }
 
+      const trayHeight = modeTransitionFrameRef.current
+        ?.querySelector<HTMLElement>(".item-tray-pad")
+        ?.getBoundingClientRect().height;
+      if (trayIsEmpty && trayHeight) {
+        document.documentElement.style.setProperty(
+          "--mode-empty-tray-height",
+          `${trayHeight}px`,
+        );
+      }
+
       startTransition(() => {
         addTransitionType("mode-change");
+        if (trayIsEmpty) {
+          addTransitionType(nextPreviewMode ? "mode-to-preview" : "mode-to-edit");
+        }
         setIsPreviewMode(nextPreviewMode);
       });
 
@@ -298,6 +342,60 @@ export function TierListEditor({
 
   return (
     <>
+      <dialog
+        aria-describedby="remove-detail-dialog-description"
+        aria-labelledby="remove-detail-dialog-title"
+        className="remove-dialog"
+        onCancel={(event) => {
+          if (isRemoving) event.preventDefault();
+        }}
+        onClick={(event) => {
+          if (event.target === event.currentTarget && !isRemoving) {
+            removeDialogRef.current?.close();
+          }
+        }}
+        onClose={() => setRemoveError(null)}
+        ref={removeDialogRef}
+      >
+        <div className="remove-dialog-card">
+          <div className="remove-dialog-body">
+            <span aria-hidden="true" className="remove-dialog-icon">
+              <Trash2 size={22} />
+            </span>
+            <div>
+              <h2 id="remove-detail-dialog-title">Remove tier list?</h2>
+              <p id="remove-detail-dialog-description">
+                <strong>{title.trim() || list.title}</strong>{" "}will be permanently
+                removed. This can&apos;t be undone.
+              </p>
+              {removeError ? (
+                <p aria-live="polite" className="remove-dialog-error" role="status">
+                  {removeError}
+                </p>
+              ) : null}
+            </div>
+          </div>
+          <div className="remove-dialog-actions">
+            <button
+              className="button"
+              disabled={isRemoving}
+              onClick={() => removeDialogRef.current?.close()}
+              type="button"
+            >
+              Cancel
+            </button>
+            <button
+              className="button danger"
+              disabled={isRemoving || isSaving}
+              onClick={() => void removeTierList()}
+              type="button"
+            >
+              {isRemoving ? <Loader2 size={16} /> : <Trash2 size={16} />}
+              {isRemoving ? "Removing" : isSaving ? "Saving changes" : "Remove list"}
+            </button>
+          </div>
+        </div>
+      </dialog>
       {topbarLeadingActionSlot
         ? createPortal(
             <button className="button" onClick={navigateToDashboard} type="button">
@@ -356,6 +454,17 @@ export function TierListEditor({
                   <Copy size={16} />
                 )}
                 {copyImageStatus}
+              </button>
+              <button
+                className="button danger"
+                disabled={isRemoving}
+                onClick={() => {
+                  setRemoveError(null);
+                  removeDialogRef.current?.showModal();
+                }}
+                type="button"
+              >
+                <Trash2 size={16} /> Remove
               </button>
             </>,
             topbarActionSlot,
@@ -492,6 +601,10 @@ export function TierListEditor({
         <div className="preview-column" key="tier-list-preview">
           <ViewTransition
             default="none"
+            onUpdate={(_, types) => {
+              if (!types.includes("mode-change")) return;
+              return () => setKeepEmptyTrayDuringModeChange(false);
+            }}
             update={{ "mode-change": "mode-frame-morph", default: "none" }}
           >
             <div className="tier-list-transition-frame" ref={modeTransitionFrameRef}>
@@ -501,6 +614,7 @@ export function TierListEditor({
                 exportRef={exportRef}
                 isExporting={isExporting}
                 items={previewItems}
+                keepEmptyTray={keepEmptyTrayDuringModeChange}
                 onDragStart={(itemId) => {
                   draggedItemId.current = itemId;
                 }}

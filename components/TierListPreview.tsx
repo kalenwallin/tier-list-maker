@@ -29,6 +29,7 @@ type Props = {
   exportRef?: RefObject<HTMLDivElement | null>;
   expandableHeader?: boolean;
   isExporting?: boolean;
+  keepEmptyTray?: boolean;
   viewTransitionName?: string;
 };
 
@@ -44,6 +45,7 @@ export function TierListPreview({
   exportRef,
   expandableHeader = false,
   isExporting = false,
+  keepEmptyTray = false,
   viewTransitionName,
 }: Props) {
   const transitionNamespace = useId().replace(/[^a-zA-Z0-9_-]/g, "");
@@ -206,8 +208,16 @@ export function TierListPreview({
           ))}
         </div>
       </div>
-      {draggable || unranked.length > 0 ? (
-        <div className="panel-pad item-tray-pad">
+      {draggable || unranked.length > 0 || keepEmptyTray ? (
+        <div
+          className="panel-pad item-tray-pad"
+          style={{
+            viewTransitionName:
+              keepEmptyTray && unranked.length === 0
+                ? "mode-empty-item-tray"
+                : undefined,
+          }}
+        >
           <div
             aria-label="Unranked item tray"
             className="item-tray"

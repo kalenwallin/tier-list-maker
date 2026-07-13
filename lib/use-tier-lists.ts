@@ -44,6 +44,7 @@ type UseTierListResult = {
   saveList: (
     updates: Pick<StoredTierList, "title" | "description" | "tiers" | "items">,
   ) => Promise<void>;
+  removeList: () => Promise<void>;
   createShareLink: () => Promise<string>;
 };
 
@@ -149,6 +150,7 @@ export function useTierList(id: string): UseTierListResult {
     shouldQueryByLocalId ? { localId: id, ownerEmail } : "skip",
   ) as ConvexTierList | null | undefined;
   const updateTierList = useMutation(api.tierLists.update);
+  const removeTierList = useMutation(api.tierLists.remove);
   const createRemoteShareLink = useMutation(api.tierLists.createShareLink);
   const remoteList = shouldQueryByLocalId ? remoteListByLocalId : remoteListById;
   const [recoveredLocalList, setRecoveredLocalList] =
@@ -226,6 +228,19 @@ export function useTierList(id: string): UseTierListResult {
     return `${window.location.origin}/share/${shareId}`;
   }, [createRemoteShareLink, ownerEmail, remoteList]);
 
+  const removeList = useCallback(async () => {
+    if (!ownerEmail) {
+      removeLocalTierList(id);
+      return;
+    }
+
+    const remoteId = remoteList?._id ?? id;
+    await removeTierList({
+      id: remoteId as Id<"tierLists">,
+      ownerEmail,
+    });
+  }, [id, ownerEmail, remoteList?._id, removeTierList]);
+
   return {
     list,
     ownerEmail,
@@ -235,6 +250,7 @@ export function useTierList(id: string): UseTierListResult {
         ? `${window.location.origin}/share/${remoteList.shareId}`
         : null,
     saveList,
+    removeList,
     createShareLink,
   };
 }
