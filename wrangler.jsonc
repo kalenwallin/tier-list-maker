@@ -2,6 +2,9 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "tier-list-maker",
   "main": ".open-next/worker.js",
+  // Runtime variables are managed in the Cloudflare dashboard. Preserve them
+  // when OpenNext invokes Wrangler during a deployment.
+  "keep_vars": true,
   "compatibility_date": "2026-07-12",
   "compatibility_flags": ["nodejs_compat"],
   "assets": {

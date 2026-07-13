@@ -53,3 +53,8 @@ For Cloudflare Workers Builds, use `pnpm deploy` as the deploy command. Build
 variables and runtime variables are separate in Workers Builds, so add
 `CONVEX_DEPLOY_KEY` and every variable needed by the Next.js build under Build
 Variables and secrets as well as configuring the runtime secrets above.
+
+Runtime variables added in the Cloudflare dashboard are preserved on deploy by
+`keep_vars` in `wrangler.jsonc`. Encrypted runtime secrets are preserved by
+Wrangler independently and should continue to be managed with `wrangler secret`
+or the dashboard.
