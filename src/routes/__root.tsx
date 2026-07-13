@@ -26,6 +26,10 @@ export const Route = createRootRoute({
     meta: [
       { title: "Tier List Maker" },
       {
+        name: "viewport",
+        content: "width=device-width, initial-scale=1, viewport-fit=cover",
+      },
+      {
         name: "description",
         content: "Create tier lists and export them as images.",
       },

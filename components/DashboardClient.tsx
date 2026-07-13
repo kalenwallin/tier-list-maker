@@ -59,6 +59,9 @@ export function DashboardClient() {
     ownerEmail,
     syncMode,
     isMigratingLocalData,
+    canLoadMore,
+    isLoadingMore,
+    loadMore,
     createList,
     removeList,
     createShareLink,
@@ -69,6 +72,7 @@ export function DashboardClient() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageExportRef = useRef<HTMLDivElement>(null);
   const listGridRef = useRef<HTMLElement>(null);
+  const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
   const removeDialogRef = useRef<HTMLDialogElement>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -96,7 +100,16 @@ export function DashboardClient() {
   const copyStatusTimeoutRef = useRef<number | null>(null);
   const copyImageStatusTimeoutRef = useRef<number | null>(null);
   const activityGenerationRef = useRef(0);
-  const dashboardLists = lists ?? initialSnapshot?.lists;
+  const isRestoringPaginatedSnapshot = Boolean(
+    initialSnapshot &&
+      lists &&
+      lists.length < initialSnapshot.lists.length &&
+      (canLoadMore || isLoadingMore),
+  );
+  const dashboardLists =
+    lists === undefined || isRestoringPaginatedSnapshot
+      ? initialSnapshot?.lists
+      : lists;
   const pendingRemovalList = dashboardLists?.find(
     (list) => list.id === pendingRemovalId,
   );
@@ -109,6 +122,36 @@ export function DashboardClient() {
     if (dashboardSnapshot === snapshot) dashboardSnapshot = null;
     initialSnapshotRef.current = null;
   }, []);
+
+  useEffect(() => {
+    if (
+      !initialSnapshot ||
+      !lists ||
+      lists.length >= initialSnapshot.lists.length ||
+      !canLoadMore
+    ) {
+      return;
+    }
+
+    loadMore();
+  }, [canLoadMore, initialSnapshot, lists, loadMore]);
+
+  useEffect(() => {
+    const sentinel = loadMoreSentinelRef.current;
+    if (!sentinel || !canLoadMore || typeof IntersectionObserver === "undefined") {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) loadMore();
+      },
+      { rootMargin: "360px 0px" },
+    );
+    observer.observe(sentinel);
+
+    return () => observer.disconnect();
+  }, [canLoadMore, loadMore]);
 
   useEffect(() => {
     try {
@@ -842,6 +885,25 @@ export function DashboardClient() {
               </span>
             </button>
           </section>
+          {syncMode === "cloud" ? (
+            <div
+              aria-live="polite"
+              className="dashboard-load-more"
+              ref={loadMoreSentinelRef}
+            >
+              {isLoadingMore ? (
+                <>
+                  <Loader2 size={17} /> Loading more tier lists
+                </>
+              ) : canLoadMore ? (
+                <button className="button ghost" onClick={loadMore} type="button">
+                  Load more tier lists
+                </button>
+              ) : (
+                "All tier lists loaded"
+              )}
+            </div>
+          ) : null}
         </>
       )}
     </>

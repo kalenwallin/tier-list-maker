@@ -3,7 +3,13 @@
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useAuth } from "@workos/authkit-tanstack-react-start/client";
-import { useMutation, useQuery } from "convex/react";
+import {
+  useConvex,
+  useMutation,
+  usePaginatedQuery,
+  useQuery,
+} from "convex/react";
+import type { PaginationResult } from "convex/server";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   createBackup,
@@ -24,11 +30,17 @@ import {
 
 export type SyncMode = "local" | "cloud";
 
+const DASHBOARD_PAGE_SIZE = 6;
+const EXPORT_PAGE_SIZE = 25;
+
 type UseTierListsResult = {
   lists: StoredTierList[] | undefined;
   ownerEmail: string | undefined;
   syncMode: SyncMode;
   isMigratingLocalData: boolean;
+  canLoadMore: boolean;
+  isLoadingMore: boolean;
+  loadMore: () => void;
   createList: (title?: string) => Promise<string>;
   removeList: (id: string) => Promise<void>;
   createShareLink: (id: string) => Promise<string>;
@@ -52,12 +64,16 @@ export function useTierLists(): UseTierListsResult {
   const { ownerEmail, authLoading } = useAuthState();
   const { localLists, localLoading, isMigratingLocalData } =
     useLocalListsMigration(ownerEmail);
-  const remoteLists = useQuery(
+  const convex = useConvex();
+  const {
+    results: remoteLists,
+    status: remoteListStatus,
+    loadMore: loadMoreRemoteLists,
+  } = usePaginatedQuery(
     api.tierLists.list,
     ownerEmail ? { ownerEmail } : "skip",
-  ) as
-    | ConvexTierList[]
-    | undefined;
+    { initialNumItems: DASHBOARD_PAGE_SIZE },
+  );
   const createTierList = useMutation(api.tierLists.create);
   const removeTierList = useMutation(api.tierLists.remove);
   const createRemoteShareLink = useMutation(api.tierLists.createShareLink);
@@ -65,8 +81,22 @@ export function useTierLists(): UseTierListsResult {
   const lists = useMemo(() => {
     if (authLoading || localLoading) return undefined;
     if (!ownerEmail) return localLists;
-    return remoteLists?.map(fromConvexTierList);
-  }, [authLoading, localLists, localLoading, ownerEmail, remoteLists]);
+    if (remoteListStatus === "LoadingFirstPage") return undefined;
+    return (remoteLists as ConvexTierList[]).map(fromConvexTierList);
+  }, [
+    authLoading,
+    localLists,
+    localLoading,
+    ownerEmail,
+    remoteLists,
+    remoteListStatus,
+  ]);
+
+  const loadMore = useCallback(() => {
+    if (ownerEmail && remoteListStatus === "CanLoadMore") {
+      loadMoreRemoteLists(DASHBOARD_PAGE_SIZE);
+    }
+  }, [loadMoreRemoteLists, ownerEmail, remoteListStatus]);
 
   async function createList(title?: string) {
     if (!ownerEmail) {
@@ -98,7 +128,28 @@ export function useTierLists(): UseTierListsResult {
   }
 
   async function exportData() {
-    return createBackup(lists ?? []);
+    if (!ownerEmail) {
+      return createBackup(lists ?? []);
+    }
+
+    const allLists: ConvexTierList[] = [];
+    let cursor: string | null = null;
+
+    while (true) {
+      const result: PaginationResult<ConvexTierList> = await convex.query(
+        api.tierLists.list,
+        {
+          ownerEmail,
+          paginationOpts: { cursor, numItems: EXPORT_PAGE_SIZE },
+        },
+      );
+      allLists.push(...result.page);
+
+      if (result.isDone) break;
+      cursor = result.continueCursor;
+    }
+
+    return createBackup(allLists.map(fromConvexTierList));
   }
 
   async function importData(contents: string) {
@@ -126,6 +177,9 @@ export function useTierLists(): UseTierListsResult {
     ownerEmail,
     syncMode: ownerEmail ? "cloud" : "local",
     isMigratingLocalData,
+    canLoadMore: Boolean(ownerEmail && remoteListStatus === "CanLoadMore"),
+    isLoadingMore: remoteListStatus === "LoadingMore",
+    loadMore,
     createList,
     removeList,
     createShareLink,
@@ -255,7 +309,7 @@ export function useTierList(id: string): UseTierListResult {
   };
 }
 
-type ConvexTierList = StoredTierList & {
+type ConvexTierList = Omit<StoredTierList, "id"> & {
   _id: Id<"tierLists">;
   _creationTime: number;
   localId?: string;

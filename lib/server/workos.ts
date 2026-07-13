@@ -12,12 +12,6 @@ export function getWorkOSBaseUrl() {
 }
 
 export function getWorkOSRedirectUri() {
-  const appUrl = getWorkOSBaseUrl();
-
-  if (appUrl) {
-    return new URL("/callback", appUrl).toString();
-  }
-
   const configuredRedirectUri =
     process.env.WORKOS_REDIRECT_URI ??
     getPublicEnv("NEXT_PUBLIC_WORKOS_REDIRECT_URI");
@@ -27,6 +21,12 @@ export function getWorkOSRedirectUri() {
     url.search = "";
     url.hash = "";
     return url.toString();
+  }
+
+  const appUrl = getWorkOSBaseUrl();
+
+  if (appUrl) {
+    return new URL("/callback", appUrl).toString();
   }
 
   return new URL("/callback", "http://localhost:3000").toString();

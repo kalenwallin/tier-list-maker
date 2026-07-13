@@ -1,3 +1,4 @@
+import { ImageResponse } from "@cloudflare/pages-plugin-vercel-og/api";
 import {
   getShareDescription,
   getSharedTierList,
@@ -5,7 +6,6 @@ import {
 } from "@/lib/share-metadata";
 import { getSiteUrl } from "@/lib/site-url";
 import { DEFAULT_TIERS, type Tier } from "@/lib/tier-list";
-import { ImageResponse } from "@vercel/og";
 
 export const size = {
   width: 1200,

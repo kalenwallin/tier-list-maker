@@ -1,6 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 
 const tier = v.object({
@@ -29,15 +30,18 @@ const tierListFields = {
 };
 
 export const list = query({
-  args: { ownerEmail: v.string() },
-  handler: async (ctx, { ownerEmail }) => {
+  args: {
+    ownerEmail: v.string(),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, { ownerEmail, paginationOpts }) => {
     return await ctx.db
       .query("tierLists")
       .withIndex("by_owner_updatedAt", (q) =>
         q.eq("ownerEmail", normalizeEmail(ownerEmail)),
       )
       .order("desc")
-      .collect();
+      .paginate(paginationOpts);
   },
 });
 
