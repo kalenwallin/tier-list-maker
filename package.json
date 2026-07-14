@@ -10,7 +10,7 @@
     "preview": "vite preview --port 3001",
     "deploy": "convex deploy --cmd 'vite build' && wrangler deploy",
     "cf-typegen": "wrangler types --env-file .dev.vars.example --include-runtime=false --env-interface CloudflareEnv cloudflare-env.d.ts",
-    "start": "vite preview --port 3000",
+    "start": "vite preview --port 3001",
     "lint": "biome lint .",
     "format": "biome format --write ."
   },

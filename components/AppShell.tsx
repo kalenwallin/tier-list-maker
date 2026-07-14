@@ -1,5 +1,5 @@
 import { Trophy } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { AuthNav } from "./AuthNav";
 import { ThemeToggle } from "./ThemeToggle";
@@ -21,14 +21,14 @@ export function AppShell({
   signedOutPrimaryHref?: string;
   signedOutPrimaryLabel?: string;
 }) {
+  const isLandingPage = useLocation({
+    select: (location) => location.pathname === "/",
+  });
+
   return (
     <main className="page-shell">
       <header className="topbar" style={{ viewTransitionName: "persistent-nav" }}>
-        <Link
-          className="brand"
-          to="/"
-          viewTransition={{ types: ["nav-back"] }}
-        >
+        <Link className="brand" to="/">
           <span className="brand-mark" aria-hidden="true">
             <Trophy size={22} />
           </span>
@@ -41,7 +41,9 @@ export function AppShell({
             <Link
               className="button"
               to="/dashboard"
-              viewTransition={{ types: [dashboardTransitionType] }}
+              viewTransition={{
+                types: [isLandingPage ? "fade-only" : dashboardTransitionType],
+              }}
             >
               Dashboard
             </Link>

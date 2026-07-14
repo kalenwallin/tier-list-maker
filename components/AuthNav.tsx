@@ -45,7 +45,6 @@ export function AuthNav({
         <Link
           className="button primary"
           to="/lists/new"
-          viewTransition={{ types: ["nav-forward"] }}
         >
           {signedOutPrimaryLabel}
         </Link>

@@ -11,7 +11,6 @@ function HomePage() {
   return (
     <DirectionalTransition>
       <AppShell
-        dashboardTransitionType="nav-forward"
         signedOutPrimaryHref="/lists/new"
         signedOutPrimaryLabel="Get Started"
       >

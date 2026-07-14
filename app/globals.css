@@ -52,6 +52,15 @@
   }
 }
 
+@keyframes route-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @keyframes dashboard-preview-expand-down {
   from {
     clip-path: inset(0 0 100% 0);
@@ -153,12 +162,28 @@ html:active-view-transition-type(dashboard-tier-list-exit)::view-transition-old(
   display: none;
 }
 
+html:active-view-transition-type(fade-only)::view-transition-old(route-content),
+html:active-view-transition-type(fade-only)::view-transition-old(
+  route-content-no-back-entry
+) {
+  animation: var(--duration-exit) ease-in both route-fade reverse;
+}
+
+html:active-view-transition-type(fade-only)::view-transition-new(route-content),
+html:active-view-transition-type(fade-only)::view-transition-new(
+  route-content-no-back-entry
+) {
+  animation: var(--duration-enter) ease-out var(--duration-exit) both route-fade;
+}
+
 html:active-view-transition-type(nav-forward)::view-transition-new(route-content),
 html:active-view-transition-type(nav-forward)::view-transition-new(
   route-content-no-back-entry
 ) {
   --slide-offset: 60px;
-  animation: var(--duration-move) ease-in-out both slide;
+  animation:
+    var(--duration-enter) ease-out var(--duration-exit) both fade,
+    var(--duration-move) ease-in-out both slide;
 }
 
 html:active-view-transition-type(dashboard-edit)::view-transition-new(route-content) {
@@ -231,7 +256,9 @@ html:active-view-transition-type(compact-tier-list)::view-transition-new(
 
 ::view-transition-new(.nav-forward) {
   --slide-offset: 60px;
-  animation: var(--duration-move) ease-in-out both slide;
+  animation:
+    var(--duration-enter) ease-out var(--duration-exit) both fade,
+    var(--duration-move) ease-in-out both slide;
 }
 
 ::view-transition-old(.nav-back) {

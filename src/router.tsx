@@ -9,6 +9,10 @@ export function getRouter() {
     defaultViewTransition: {
       types: ({ fromLocation, toLocation }) => {
         if (!fromLocation) return false;
+        if (fromLocation.pathname === toLocation.pathname) return false;
+        if (fromLocation.pathname === "/" || toLocation.pathname === "/") {
+          return ["fade-only"];
+        }
 
         const fromIndex = fromLocation.state.__TSR_index;
         const toIndex = toLocation.state.__TSR_index;

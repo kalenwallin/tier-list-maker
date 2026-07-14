@@ -29,7 +29,6 @@ export function HomeClient() {
     if (user) {
       void navigate({
         to: "/dashboard",
-        viewTransition: { types: ["nav-forward"] },
       });
       return;
     }
@@ -41,7 +40,6 @@ export function HomeClient() {
         to: "/lists/$id",
         params: { id },
         search: { mode: undefined },
-        viewTransition: { types: ["nav-forward"] },
       });
     } finally {
       setIsCreating(false);

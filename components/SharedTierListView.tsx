@@ -59,11 +59,7 @@ export function SharedTierListView({ shareId }: { shareId: string }) {
       <section className="panel panel-pad">
         <h1>Shared tier list not found</h1>
         <p className="muted">The link may have been removed or copied incorrectly.</p>
-        <Link
-          className="button"
-          to="/"
-          viewTransition={{ types: ["nav-back"] }}
-        >
+        <Link className="button" to="/">
           Make your own
         </Link>
       </section>
