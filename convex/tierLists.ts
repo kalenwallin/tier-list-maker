@@ -29,7 +29,22 @@ const tierListFields = {
   updatedAt: v.number(),
 };
 
+// Keep this bounded endpoint for clients deployed before dashboard pagination.
+// Current clients use listPaginated below.
 export const list = query({
+  args: { ownerEmail: v.string() },
+  handler: async (ctx, { ownerEmail }) => {
+    return await ctx.db
+      .query("tierLists")
+      .withIndex("by_owner_updatedAt", (q) =>
+        q.eq("ownerEmail", normalizeEmail(ownerEmail)),
+      )
+      .order("desc")
+      .take(100);
+  },
+});
+
+export const listPaginated = query({
   args: {
     ownerEmail: v.string(),
     paginationOpts: paginationOptsValidator,

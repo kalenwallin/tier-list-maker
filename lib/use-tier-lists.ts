@@ -70,7 +70,7 @@ export function useTierLists(): UseTierListsResult {
     status: remoteListStatus,
     loadMore: loadMoreRemoteLists,
   } = usePaginatedQuery(
-    api.tierLists.list,
+    api.tierLists.listPaginated,
     ownerEmail ? { ownerEmail } : "skip",
     { initialNumItems: DASHBOARD_PAGE_SIZE },
   );
@@ -137,7 +137,7 @@ export function useTierLists(): UseTierListsResult {
 
     while (true) {
       const result: PaginationResult<ConvexTierList> = await convex.query(
-        api.tierLists.list,
+        api.tierLists.listPaginated,
         {
           ownerEmail,
           paginationOpts: { cursor, numItems: EXPORT_PAGE_SIZE },
