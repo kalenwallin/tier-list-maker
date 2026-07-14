@@ -18,7 +18,7 @@ pnpm install
 pnpm dev
 ```
 
-Open `http://localhost:3000`. `pnpm convex dev` writes
+Open `http://localhost:3001`. `pnpm convex dev` writes
 `NEXT_PUBLIC_CONVEX_URL` to `.env.local` after you choose or create a Convex
 deployment.
 
