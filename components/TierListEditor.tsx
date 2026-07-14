@@ -1,5 +1,6 @@
 "use client";
 
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
   Check,
   Copy,
@@ -11,7 +12,6 @@ import {
   Share2,
   Trash2,
 } from "lucide-react";
-import { Link, useNavigate } from "@tanstack/react-router";
 import {
   addTransitionType,
   startTransition,
@@ -25,6 +25,7 @@ import { createPortal, flushSync } from "react-dom";
 import { StoredTierList } from "@/lib/db";
 import { copyPngToClipboard, downloadPng, renderTierListPng } from "@/lib/image-export";
 import { createId, moveItem, sortItemsByTier, Tier, TierItem } from "@/lib/tier-list";
+import { useMobilePerformanceMode } from "@/lib/use-mobile-performance-mode";
 import { useTierList } from "@/lib/use-tier-lists";
 import { TierListPreview } from "./TierListPreview";
 
@@ -50,20 +51,21 @@ export function TierListEditor({
     createShareLink,
   } = useTierList(id);
   const list = queriedList === undefined ? initialList : queriedList;
+  const mobilePerformanceMode = useMobilePerformanceMode();
   const navigate = useNavigate();
   const exportRef = useRef<HTMLDivElement>(null);
   const removeDialogRef = useRef<HTMLDialogElement>(null);
   const modeTransitionFrameRef = useRef<HTMLDivElement>(null);
   const draggedItemId = useRef<string | null>(null);
-  const hydratedListId = useRef<string | null>(null);
-  const lastSavedSnapshot = useRef("");
+  const hydratedListId = useRef<string | null>(initialList?.id ?? null);
+  const lastSavedSnapshot = useRef(initialList ? createSnapshot(initialList) : "");
   const skipAutosave = useRef(true);
   const isRemovingRef = useRef(false);
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [tiers, setTiers] = useState<Tier[]>([]);
-  const [items, setItems] = useState<TierItem[]>([]);
+  const [title, setTitle] = useState(initialList?.title ?? "");
+  const [description, setDescription] = useState(initialList?.description ?? "");
+  const [tiers, setTiers] = useState<Tier[]>(initialList?.tiers ?? []);
+  const [items, setItems] = useState<TierItem[]>(initialList?.items ?? []);
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
@@ -73,11 +75,13 @@ export function TierListEditor({
   const [keepEmptyTrayDuringModeChange, setKeepEmptyTrayDuringModeChange] =
     useState(false);
   const [routeMorphName, setRouteMorphName] = useState<string | undefined>(
-    !compactDashboardTransition && (previewMode || morphOnMount)
+    !mobilePerformanceMode && !compactDashboardTransition && (previewMode || morphOnMount)
       ? `tier-list-${id}`
       : undefined,
   );
-  const [saveStatus, setSaveStatus] = useState("Saved");
+  const [saveStatus, setSaveStatus] = useState(
+    initialList ? (syncMode === "cloud" ? "Saved to cloud" : "Saved locally") : "Saved",
+  );
   const [shareStatus, setShareStatus] = useState("Copy link");
   const [copyImageStatus, setCopyImageStatus] = useState("Copy image");
   const [newTier, setNewTier] = useState("");
@@ -198,18 +202,20 @@ export function TierListEditor({
     try {
       await removeList();
       removeDialogRef.current?.close();
-      if (!isPreviewMode) {
+      if (!mobilePerformanceMode && !isPreviewMode) {
         flushSync(() => setIsNavigatingToDashboard(true));
       }
       void navigate({
         to: "/dashboard",
-        viewTransition: {
-          types: compactDashboardTransition
-            ? ["compact-tier-list"]
-            : isPreviewMode
-              ? ["nav-back"]
-              : ["nav-back", "dashboard-edit-return"],
-        },
+        viewTransition: mobilePerformanceMode
+          ? false
+          : {
+              types: compactDashboardTransition
+                ? ["compact-tier-list"]
+                : isPreviewMode
+                  ? ["nav-back"]
+                  : ["nav-back", "dashboard-edit-return"],
+            },
       });
     } catch (error) {
       isRemovingRef.current = false;
@@ -221,6 +227,14 @@ export function TierListEditor({
   }
 
   function changeMode(nextPreviewMode: boolean) {
+    if (mobilePerformanceMode) {
+      setRouteMorphName(undefined);
+      setKeepEmptyTrayDuringModeChange(false);
+      setIsPreviewMode(nextPreviewMode);
+      updateModeUrl(nextPreviewMode);
+      return;
+    }
+
     const applyMode = () => {
       const trayIsEmpty = items.every((item) => item.tierId);
       if (trayIsEmpty) {
@@ -253,11 +267,7 @@ export function TierListEditor({
         setIsPreviewMode(nextPreviewMode);
       });
 
-      window.history.replaceState(
-        window.history.state,
-        "",
-        nextPreviewMode ? `/lists/${id}?mode=preview` : `/lists/${id}`,
-      );
+      updateModeUrl(nextPreviewMode);
     };
 
     if (routeMorphName) {
@@ -270,27 +280,46 @@ export function TierListEditor({
   }
 
   function navigateToDashboard() {
-    flushSync(() => {
-      setRouteMorphName(
-        compactDashboardTransition ? undefined : `tier-list-${id}`,
-      );
-      if (!isPreviewMode) setIsNavigatingToDashboard(true);
-    });
+    if (!mobilePerformanceMode) {
+      flushSync(() => {
+        setRouteMorphName(compactDashboardTransition ? undefined : `tier-list-${id}`);
+        if (!isPreviewMode) setIsNavigatingToDashboard(true);
+      });
+    }
 
     void navigate({
       to: "/dashboard",
-      viewTransition: {
-        types: compactDashboardTransition
-          ? ["compact-tier-list"]
-          : isPreviewMode
-            ? ["nav-back"]
-            : ["nav-back", "dashboard-edit-return"],
-      },
+      viewTransition: mobilePerformanceMode
+        ? false
+        : {
+            types: compactDashboardTransition
+              ? ["compact-tier-list"]
+              : isPreviewMode
+                ? ["nav-back"]
+                : ["nav-back", "dashboard-edit-return"],
+          },
     });
   }
 
+  function updateModeUrl(nextPreviewMode: boolean) {
+    window.history.replaceState(
+      window.history.state,
+      "",
+      nextPreviewMode ? `/lists/${id}?mode=preview` : `/lists/${id}`,
+    );
+  }
+
+  function updateWithOptionalTransition(update: () => void) {
+    if (mobilePerformanceMode) {
+      update();
+      return;
+    }
+
+    startTransition(update);
+  }
+
   function addItem() {
-    startTransition(() => {
+    updateWithOptionalTransition(() => {
       setItems((current) => [
         ...current,
         {
@@ -305,7 +334,7 @@ export function TierListEditor({
     const name = newTier.trim();
     if (!name) return;
     const colors = ["#61dafb", "#f78c6b", "#82d173", "#c792ea", "#ffcb6b"];
-    startTransition(() => {
+    updateWithOptionalTransition(() => {
       setTiers((current) => [
         ...current,
         {
@@ -325,7 +354,7 @@ export function TierListEditor({
   ) {
     const itemId = draggedItemId.current;
     if (!itemId) return;
-    startTransition(() => {
+    updateWithOptionalTransition(() => {
       setItems((current) => moveItem(current, itemId, tierId, targetItemId, placement));
     });
     draggedItemId.current = null;
@@ -338,7 +367,7 @@ export function TierListEditor({
   }
 
   function removeTier(tierId: string) {
-    startTransition(() => {
+    updateWithOptionalTransition(() => {
       setTiers((current) => current.filter((tier) => tier.id !== tierId));
       setItems((current) =>
         current.map((item) =>
@@ -349,7 +378,7 @@ export function TierListEditor({
   }
 
   function removeItem(itemId: string) {
-    startTransition(() => {
+    updateWithOptionalTransition(() => {
       setItems((current) => current.filter((item) => item.id !== itemId));
     });
   }
@@ -369,7 +398,7 @@ export function TierListEditor({
         <Link
           className="button"
           to="/dashboard"
-          viewTransition={{ types: ["nav-back"] }}
+          viewTransition={mobilePerformanceMode ? false : { types: ["nav-back"] }}
         >
           Back to dashboard
         </Link>

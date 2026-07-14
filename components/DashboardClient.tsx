@@ -1,5 +1,6 @@
 "use client";
 
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
   Check,
   Copy,
@@ -14,7 +15,6 @@ import {
   Trash2,
   Upload,
 } from "lucide-react";
-import { Link, useNavigate } from "@tanstack/react-router";
 import {
   addTransitionType,
   ChangeEvent,
@@ -25,13 +25,14 @@ import {
   useState,
   ViewTransition,
 } from "react";
+import type { StoredTierList } from "@/lib/db";
 import {
   copyPngToClipboard,
   downloadPng,
   renderTierListPng,
   waitForNextFrame,
 } from "@/lib/image-export";
-import type { StoredTierList } from "@/lib/db";
+import { useMobilePerformanceMode } from "@/lib/use-mobile-performance-mode";
 import { useTierLists } from "@/lib/use-tier-lists";
 import { TierListPreview } from "./TierListPreview";
 
@@ -68,6 +69,7 @@ export function DashboardClient() {
     exportData,
     importData,
   } = useTierLists();
+  const mobilePerformanceMode = useMobilePerformanceMode();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageExportRef = useRef<HTMLDivElement>(null);
@@ -234,7 +236,7 @@ export function DashboardClient() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: Re-measure after list content or layout changes.
   useEffect(() => {
     const grid = listGridRef.current;
-    if (!grid) {
+    if (!grid || mobilePerformanceMode || isCompact || layout === "list") {
       setHasWrappedCardSummary(false);
       return;
     }
@@ -268,17 +270,13 @@ export function DashboardClient() {
 
     const resizeObserver = new ResizeObserver(measure);
     resizeObserver.observe(grid);
-    for (const element of summaryTexts) {
-      resizeObserver.observe(element);
-    }
-
     void document.fonts?.ready.then(measure);
 
     return () => {
       isActive = false;
       resizeObserver.disconnect();
     };
-  }, [dashboardLists, layout]);
+  }, [dashboardLists, isCompact, layout, mobilePerformanceMode]);
 
   function rememberDashboardState(activeMorphListId: string) {
     if (!dashboardLists) return;
@@ -295,10 +293,26 @@ export function DashboardClient() {
   }
 
   function toggleCompact() {
+    if (mobilePerformanceMode) {
+      setIsCompact((current) => !current);
+      return;
+    }
+
     startTransition(() => {
       if (isCompact) addTransitionType("dashboard-preview-expand");
       setIsCompact((current) => !current);
     });
+  }
+
+  function changeLayout(nextLayout: DashboardLayout) {
+    if (layout === nextLayout) return;
+
+    if (mobilePerformanceMode) {
+      setLayout(nextLayout);
+      return;
+    }
+
+    startTransition(() => setLayout(nextLayout));
   }
 
   async function create() {
@@ -618,7 +632,7 @@ export function DashboardClient() {
               <button
                 aria-pressed={layout === "cards"}
                 className="button layout-button"
-                onClick={() => startTransition(() => setLayout("cards"))}
+                onClick={() => changeLayout("cards")}
                 type="button"
               >
                 <LayoutGrid size={16} /> Cards
@@ -626,7 +640,7 @@ export function DashboardClient() {
               <button
                 aria-pressed={layout === "list"}
                 className="button layout-button"
-                onClick={() => startTransition(() => setLayout("list"))}
+                onClick={() => changeLayout("list")}
                 type="button"
               >
                 <List size={16} /> List
@@ -678,11 +692,15 @@ export function DashboardClient() {
                       })}
                       to="/lists/$id"
                       onClick={() => rememberDashboardState(list.id)}
-                      viewTransition={{
-                        types: isCompact
-                          ? ["compact-tier-list"]
-                          : ["nav-forward", "dashboard-tier-list-exit"],
-                      }}
+                      viewTransition={
+                        mobilePerformanceMode
+                          ? false
+                          : {
+                              types: isCompact
+                                ? ["compact-tier-list"]
+                                : ["nav-forward", "dashboard-tier-list-exit"],
+                            }
+                      }
                     >
                       <span className="visually-hidden">Open preview</span>
                     </Link>
@@ -714,20 +732,22 @@ export function DashboardClient() {
                       aria-hidden="true"
                       className="dashboard-tier-preview list-card-summary"
                       style={{
-                        viewTransitionClass: isCompact
-                          ? undefined
-                          : [
-                              "tier-list-morph",
-                              "dashboard-preview-expand",
-                              initialSnapshot?.activeMorphListId === list.id
-                                ? "tier-list-morph-return"
-                                : undefined,
-                            ]
-                              .filter(Boolean)
-                              .join(" "),
-                        viewTransitionName: isCompact
-                          ? undefined
-                          : `tier-list-${list.id}`,
+                        viewTransitionClass:
+                          isCompact || mobilePerformanceMode
+                            ? undefined
+                            : [
+                                "tier-list-morph",
+                                "dashboard-preview-expand",
+                                initialSnapshot?.activeMorphListId === list.id
+                                  ? "tier-list-morph-return"
+                                  : undefined,
+                              ]
+                                .filter(Boolean)
+                                .join(" "),
+                        viewTransitionName:
+                          isCompact || mobilePerformanceMode
+                            ? undefined
+                            : `tier-list-${list.id}`,
                       }}
                     >
                       {list.tiers.map((tier) => (
@@ -788,15 +808,19 @@ export function DashboardClient() {
                         title="Edit"
                         to="/lists/$id"
                         onClick={() => rememberDashboardState(list.id)}
-                        viewTransition={{
-                          types: isCompact
-                            ? ["compact-tier-list"]
-                            : [
-                                "nav-forward",
-                                "dashboard-edit",
-                                "dashboard-tier-list-exit",
-                              ],
-                        }}
+                        viewTransition={
+                          mobilePerformanceMode
+                            ? false
+                            : {
+                                types: isCompact
+                                  ? ["compact-tier-list"]
+                                  : [
+                                      "nav-forward",
+                                      "dashboard-edit",
+                                      "dashboard-tier-list-exit",
+                                    ],
+                              }
+                        }
                       >
                         <Pencil size={16} />
                       </Link>
