@@ -1,7 +1,7 @@
 "use client";
 
-import { useAuth } from "@workos/authkit-tanstack-react-start/client";
 import { Link } from "@tanstack/react-router";
+import { useAuth } from "@workos/authkit-tanstack-react-start/client";
 import { useQuery } from "convex/react";
 import { Check, Copy, Loader2, Pencil } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -9,6 +9,7 @@ import { createPortal } from "react-dom";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import type { StoredTierList } from "@/lib/db";
+import { getShareUrl } from "@/lib/site-url";
 import { TierListPreview } from "./TierListPreview";
 
 type SharedTierList = StoredTierList & {
@@ -36,8 +37,7 @@ export function SharedTierListView({ shareId }: { shareId: string }) {
 
   async function copyShareLink() {
     try {
-      const url = `${window.location.origin}/share/${encodeURIComponent(shareId)}`;
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(getShareUrl(shareId));
       setCopyStatus("copied");
     } catch {
       setCopyStatus("error");

@@ -95,6 +95,9 @@ export function DashboardClient() {
     initialSnapshot?.hasWrappedCardSummary ?? false,
   );
   const [exportingImageListId, setExportingImageListId] = useState<string | null>(null);
+  const [exportingImageAction, setExportingImageAction] = useState<
+    "download" | "copy" | null
+  >(null);
   const [sharingListId, setSharingListId] = useState<string | null>(null);
   const [copiedListId, setCopiedListId] = useState<string | null>(null);
   const [copiedImageListId, setCopiedImageListId] = useState<string | null>(null);
@@ -415,6 +418,7 @@ export function DashboardClient() {
 
     const activityGeneration = activityGenerationRef.current;
     setExportingImageListId(listId);
+    setExportingImageAction(action);
     setCopiedImageListId(null);
     setMessage(null);
     if (copyImageStatusTimeoutRef.current !== null) {
@@ -455,6 +459,7 @@ export function DashboardClient() {
     } finally {
       if (activityGeneration === activityGenerationRef.current) {
         setExportingImageListId(null);
+        setExportingImageAction(null);
       }
     }
   }
@@ -860,7 +865,8 @@ export function DashboardClient() {
                         title="Download image"
                         type="button"
                       >
-                        {exportingImageListId === list.id ? (
+                        {exportingImageListId === list.id &&
+                        exportingImageAction === "download" ? (
                           <Loader2 size={16} />
                         ) : (
                           <Download size={16} />
@@ -881,7 +887,8 @@ export function DashboardClient() {
                         }
                         type="button"
                       >
-                        {exportingImageListId === list.id ? (
+                        {exportingImageListId === list.id &&
+                        exportingImageAction === "copy" ? (
                           <Loader2 size={16} />
                         ) : copiedImageListId === list.id ? (
                           <Check size={16} />

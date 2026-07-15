@@ -1,7 +1,5 @@
 "use client";
 
-import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
 import { useAuth } from "@workos/authkit-tanstack-react-start/client";
 import {
   useConvex,
@@ -11,6 +9,8 @@ import {
 } from "convex/react";
 import type { PaginationResult } from "convex/server";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 import {
   createBackup,
   createBlankTierList,
@@ -27,6 +27,7 @@ import {
   removeLocalTierList,
   updateLocalTierList,
 } from "./local-tier-lists";
+import { getShareUrl } from "./site-url";
 
 export type SyncMode = "local" | "cloud";
 
@@ -124,7 +125,7 @@ export function useTierLists(): UseTierListsResult {
     const shareId =
       lists?.find((list) => list.id === id)?.shareId ??
       (await createRemoteShareLink({ id: id as Id<"tierLists">, ownerEmail }));
-    return `${window.location.origin}/share/${shareId}`;
+    return getShareUrl(shareId);
   }
 
   async function exportData() {
@@ -279,7 +280,7 @@ export function useTierList(id: string): UseTierListResult {
         id: remoteList._id,
         ownerEmail,
       }));
-    return `${window.location.origin}/share/${shareId}`;
+    return getShareUrl(shareId);
   }, [createRemoteShareLink, ownerEmail, remoteList]);
 
   const removeList = useCallback(async () => {
@@ -299,10 +300,7 @@ export function useTierList(id: string): UseTierListResult {
     list,
     ownerEmail,
     syncMode: ownerEmail ? "cloud" : "local",
-    shareUrl:
-      ownerEmail && remoteList?.shareId && typeof window !== "undefined"
-        ? `${window.location.origin}/share/${remoteList.shareId}`
-        : null,
+    shareUrl: ownerEmail && remoteList?.shareId ? getShareUrl(remoteList.shareId) : null,
     saveList,
     removeList,
     createShareLink,
