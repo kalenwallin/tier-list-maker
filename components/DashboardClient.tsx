@@ -37,6 +37,7 @@ import { useTierLists } from "@/lib/use-tier-lists";
 import { TierListPreview } from "./TierListPreview";
 
 const DASHBOARD_PREFERENCES_KEY = "tier-list-maker-dashboard-preferences-v1";
+const MIN_TWO_CARD_LAYOUT_WIDTH = 260 * 2 + 16;
 
 type DashboardLayout = "cards" | "list";
 
@@ -89,6 +90,7 @@ export function DashboardClient() {
   const [layout, setLayout] = useState<DashboardLayout>(
     initialSnapshot?.layout ?? "cards",
   );
+  const [isSingleColumnLayout, setIsSingleColumnLayout] = useState(false);
   const [isCompact, setIsCompact] = useState(initialSnapshot?.isCompact ?? false);
   const [hasLoadedPreferences, setHasLoadedPreferences] = useState(false);
   const [hasWrappedCardSummary, setHasWrappedCardSummary] = useState(
@@ -118,6 +120,8 @@ export function DashboardClient() {
   const pendingRemovalList = dashboardLists?.find(
     (list) => list.id === pendingRemovalId,
   );
+  const dashboardListCount = dashboardLists?.length ?? 0;
+  const effectiveLayout = isSingleColumnLayout ? "list" : layout;
 
   useLayoutEffect(() => {
     const snapshot = initialSnapshotRef.current;
@@ -210,6 +214,29 @@ export function DashboardClient() {
   }, [pendingRemovalList]);
 
   useLayoutEffect(() => {
+    if (dashboardListCount === 0) {
+      setIsSingleColumnLayout(false);
+      return;
+    }
+
+    const grid = listGridRef.current;
+    if (!grid) return;
+
+    const measure = () => {
+      setIsSingleColumnLayout(
+        grid.getBoundingClientRect().width < MIN_TWO_CARD_LAYOUT_WIDTH,
+      );
+    };
+
+    measure();
+
+    const resizeObserver = new ResizeObserver(measure);
+    resizeObserver.observe(grid);
+
+    return () => resizeObserver.disconnect();
+  }, [dashboardListCount]);
+
+  useLayoutEffect(() => {
     activityGenerationRef.current += 1;
 
     return () => {
@@ -239,7 +266,7 @@ export function DashboardClient() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: Re-measure after list content or layout changes.
   useEffect(() => {
     const grid = listGridRef.current;
-    if (!grid || mobilePerformanceMode || isCompact || layout === "list") {
+    if (!grid || mobilePerformanceMode || isCompact || effectiveLayout === "list") {
       setHasWrappedCardSummary(false);
       return;
     }
@@ -279,7 +306,7 @@ export function DashboardClient() {
       isActive = false;
       resizeObserver.disconnect();
     };
-  }, [dashboardLists, isCompact, layout, mobilePerformanceMode]);
+  }, [dashboardLists, effectiveLayout, isCompact, mobilePerformanceMode]);
 
   function rememberDashboardState(activeMorphListId: string) {
     if (!dashboardLists) return;
@@ -633,24 +660,26 @@ export function DashboardClient() {
       ) : (
         <>
           <div className="dashboard-layout-controls">
-            <fieldset aria-label="Dashboard layout" className="layout-switcher">
-              <button
-                aria-pressed={layout === "cards"}
-                className="button layout-button"
-                onClick={() => changeLayout("cards")}
-                type="button"
-              >
-                <LayoutGrid size={16} /> Cards
-              </button>
-              <button
-                aria-pressed={layout === "list"}
-                className="button layout-button"
-                onClick={() => changeLayout("list")}
-                type="button"
-              >
-                <List size={16} /> List
-              </button>
-            </fieldset>
+            {isSingleColumnLayout ? null : (
+              <fieldset aria-label="Dashboard layout" className="layout-switcher">
+                <button
+                  aria-pressed={layout === "cards"}
+                  className="button layout-button"
+                  onClick={() => changeLayout("cards")}
+                  type="button"
+                >
+                  <LayoutGrid size={16} /> Cards
+                </button>
+                <button
+                  aria-pressed={layout === "list"}
+                  className="button layout-button"
+                  onClick={() => changeLayout("list")}
+                  type="button"
+                >
+                  <List size={16} /> List
+                </button>
+              </fieldset>
+            )}
             <button
               aria-pressed={isCompact}
               className="button compact-button"
@@ -663,7 +692,7 @@ export function DashboardClient() {
           <section
             className={[
               "grid",
-              layout === "list" ? "is-list-layout" : "is-card-layout",
+              effectiveLayout === "list" ? "is-list-layout" : "is-card-layout",
               isCompact ? "is-compact" : "",
               hasWrappedCardSummary ? "has-wrapped-card-summary" : "",
             ]
