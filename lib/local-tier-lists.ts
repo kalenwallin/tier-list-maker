@@ -32,7 +32,10 @@ export function createLocalTierList(title?: string, id = createId("local-list"))
 
 export function updateLocalTierList(
   id: string,
-  updates: Pick<StoredTierList, "title" | "description" | "tiers" | "items">,
+  updates: Pick<
+    StoredTierList,
+    "title" | "description" | "itemImageAspectRatio" | "tiers" | "items"
+  >,
 ) {
   const lists = readLocalTierLists();
   const updatedAt = Date.now();
@@ -43,6 +46,7 @@ export function updateLocalTierList(
             ...list,
             title: updates.title.trim() || "Untitled tier list",
             description: updates.description.trim(),
+            itemImageAspectRatio: updates.itemImageAspectRatio,
             tiers: updates.tiers,
             items: updates.items,
             updatedAt,

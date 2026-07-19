@@ -24,7 +24,16 @@ import {
 import { createPortal, flushSync } from "react-dom";
 import { StoredTierList } from "@/lib/db";
 import { copyPngToClipboard, downloadPng, renderTierListPng } from "@/lib/image-export";
-import { createId, moveItem, sortItemsByTier, Tier, TierItem } from "@/lib/tier-list";
+import {
+  createId,
+  DEFAULT_ITEM_IMAGE_ASPECT_RATIO,
+  ITEM_IMAGE_ASPECT_RATIO_OPTIONS,
+  ItemImageAspectRatio,
+  moveItem,
+  sortItemsByTier,
+  Tier,
+  TierItem,
+} from "@/lib/tier-list";
 import { useMobilePerformanceMode } from "@/lib/use-mobile-performance-mode";
 import { useTierList } from "@/lib/use-tier-lists";
 import { TierListPreview } from "./TierListPreview";
@@ -59,11 +68,15 @@ export function TierListEditor({
   const draggedItemId = useRef<string | null>(null);
   const hydratedListId = useRef<string | null>(initialList?.id ?? null);
   const lastSavedSnapshot = useRef(initialList ? createSnapshot(initialList) : "");
-  const skipAutosave = useRef(true);
+  const skipAutosave = useRef(initialList === undefined);
   const isRemovingRef = useRef(false);
 
   const [title, setTitle] = useState(initialList?.title ?? "");
   const [description, setDescription] = useState(initialList?.description ?? "");
+  const [itemImageAspectRatio, setItemImageAspectRatio] =
+    useState<ItemImageAspectRatio>(
+      initialList?.itemImageAspectRatio ?? DEFAULT_ITEM_IMAGE_ASPECT_RATIO,
+    );
   const [tiers, setTiers] = useState<Tier[]>(initialList?.tiers ?? []);
   const [items, setItems] = useState<TierItem[]>(initialList?.items ?? []);
   const [isSaving, setIsSaving] = useState(false);
@@ -106,12 +119,14 @@ export function TierListEditor({
     lastSavedSnapshot.current = createSnapshot({
       title: list.title,
       description: list.description ?? "",
+      itemImageAspectRatio: list.itemImageAspectRatio,
       tiers: list.tiers,
       items: list.items,
     });
     skipAutosave.current = true;
     setTitle(list.title);
     setDescription(list.description ?? "");
+    setItemImageAspectRatio(list.itemImageAspectRatio);
     setTiers(list.tiers);
     setItems(list.items);
     setSaveStatus(syncMode === "cloud" ? "Saved to cloud" : "Saved locally");
@@ -120,7 +135,13 @@ export function TierListEditor({
   useEffect(() => {
     if (!list || isRemoving) return;
 
-    const snapshot = createSnapshot({ title, description, tiers, items });
+    const snapshot = createSnapshot({
+      title,
+      description,
+      itemImageAspectRatio,
+      tiers,
+      items,
+    });
     if (snapshot === lastSavedSnapshot.current) return;
 
     if (skipAutosave.current) {
@@ -134,7 +155,7 @@ export function TierListEditor({
       setIsSaving(true);
       setSaveStatus("Saving");
       try {
-        await saveList({ title, description, tiers, items });
+        await saveList({ title, description, itemImageAspectRatio, tiers, items });
         lastSavedSnapshot.current = snapshot;
         setSaveStatus(syncMode === "cloud" ? "Saved to cloud" : "Saved locally");
       } finally {
@@ -143,7 +164,17 @@ export function TierListEditor({
     }, 350);
 
     return () => window.clearTimeout(timeoutId);
-  }, [description, isRemoving, items, list, saveList, syncMode, tiers, title]);
+  }, [
+    description,
+    isRemoving,
+    itemImageAspectRatio,
+    items,
+    list,
+    saveList,
+    syncMode,
+    tiers,
+    title,
+  ]);
 
   useEffect(() => {
     if (!routeMorphName) return;
@@ -279,7 +310,34 @@ export function TierListEditor({
     applyMode();
   }
 
-  function navigateToDashboard() {
+  async function saveDraftBeforeNavigation() {
+    const snapshot = createSnapshot({
+      title,
+      description,
+      itemImageAspectRatio,
+      tiers,
+      items,
+    });
+    if (snapshot === lastSavedSnapshot.current) return true;
+
+    setIsSaving(true);
+    setSaveStatus("Saving");
+    try {
+      await saveList({ title, description, itemImageAspectRatio, tiers, items });
+      lastSavedSnapshot.current = snapshot;
+      setSaveStatus(syncMode === "cloud" ? "Saved to cloud" : "Saved locally");
+      return true;
+    } catch {
+      setSaveStatus("Could not save");
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function navigateToDashboard() {
+    if (!(await saveDraftBeforeNavigation())) return;
+
     if (!mobilePerformanceMode) {
       flushSync(() => {
         setRouteMorphName(compactDashboardTransition ? undefined : `tier-list-${id}`);
@@ -409,6 +467,10 @@ export function TierListEditor({
   const previewTitle = hydratedListId.current === list.id ? title : list.title;
   const previewDescription =
     hydratedListId.current === list.id ? description : (list.description ?? "");
+  const previewItemImageAspectRatio =
+    hydratedListId.current === list.id
+      ? itemImageAspectRatio
+      : list.itemImageAspectRatio;
   const previewTiers = hydratedListId.current === list.id ? tiers : list.tiers;
   const previewItems = hydratedListId.current === list.id ? items : list.items;
 
@@ -585,6 +647,22 @@ export function TierListEditor({
                 onChange={(event) => setDescription(event.target.value)}
               />
             </label>
+            <label className="form-row">
+              <span className="label">Item image ratio</span>
+              <select
+                className="input"
+                value={itemImageAspectRatio}
+                onChange={(event) =>
+                  setItemImageAspectRatio(event.target.value as ItemImageAspectRatio)
+                }
+              >
+                {ITEM_IMAGE_ASPECT_RATIO_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
 
             <div className="form-row">
               <span className="label">Items</span>
@@ -701,6 +779,7 @@ export function TierListEditor({
                 expandableHeader
                 exportRef={exportRef}
                 isExporting={isExporting}
+                itemImageAspectRatio={previewItemImageAspectRatio}
                 items={previewItems}
                 keepEmptyTray={keepEmptyTrayDuringModeChange}
                 onDragStart={(itemId) => {
@@ -727,11 +806,15 @@ export function TierListEditor({
 }
 
 function createSnapshot(
-  value: Pick<StoredTierList, "title" | "description" | "tiers" | "items">,
+  value: Pick<
+    StoredTierList,
+    "title" | "description" | "itemImageAspectRatio" | "tiers" | "items"
+  >,
 ) {
   return JSON.stringify({
     title: value.title.trim() || "Untitled tier list",
     description: value.description.trim(),
+    itemImageAspectRatio: value.itemImageAspectRatio,
     tiers: value.tiers,
     items: value.items,
   });

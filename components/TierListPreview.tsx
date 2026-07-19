@@ -11,11 +11,12 @@ import {
   ViewTransition,
 } from "react";
 import { getSiteUrl } from "@/lib/site-url";
-import { Tier, TierItem } from "@/lib/tier-list";
+import { ItemImageAspectRatio, Tier, TierItem } from "@/lib/tier-list";
 
 type Props = {
   title?: string;
   description?: string;
+  itemImageAspectRatio?: ItemImageAspectRatio;
   tiers: Tier[];
   items: TierItem[];
   className?: string;
@@ -36,6 +37,7 @@ type Props = {
 export function TierListPreview({
   title,
   description,
+  itemImageAspectRatio,
   tiers,
   items,
   className,
@@ -113,6 +115,10 @@ export function TierListPreview({
     <section
       className={[
         "panel tier-export-card",
+        itemImageAspectRatio ? "has-item-image-ratio" : undefined,
+        itemImageAspectRatio
+          ? `item-image-ratio-${itemImageAspectRatio}`
+          : undefined,
         isExporting ? "is-exporting" : undefined,
         className,
       ]

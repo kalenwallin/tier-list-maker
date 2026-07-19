@@ -100,6 +100,7 @@ export function SharedTierListView({ shareId }: { shareId: string }) {
         : null}
       <TierListPreview
         description={list.description}
+        itemImageAspectRatio={list.itemImageAspectRatio}
         items={list.items}
         tiers={list.tiers}
         title={list.title}

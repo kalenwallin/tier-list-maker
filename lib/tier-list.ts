@@ -11,6 +11,24 @@ export type TierItem = {
   tierId?: string;
 };
 
+export const ITEM_IMAGE_ASPECT_RATIO_OPTIONS = [
+  { value: "landscape", label: "Landscape (3:2)" },
+  { value: "square", label: "Square (1:1)" },
+  { value: "portrait", label: "Portrait (2:3)" },
+  { value: "wide", label: "Wide (16:9)" },
+] as const;
+
+export type ItemImageAspectRatio =
+  (typeof ITEM_IMAGE_ASPECT_RATIO_OPTIONS)[number]["value"];
+
+export const DEFAULT_ITEM_IMAGE_ASPECT_RATIO: ItemImageAspectRatio = "landscape";
+
+export function isItemImageAspectRatio(
+  value: unknown,
+): value is ItemImageAspectRatio {
+  return ITEM_IMAGE_ASPECT_RATIO_OPTIONS.some((option) => option.value === value);
+}
+
 export const DEFAULT_TIERS: Tier[] = [
   { id: "s", name: "S", color: "#ff5470" },
   { id: "a", name: "A", color: "#ff9f43" },

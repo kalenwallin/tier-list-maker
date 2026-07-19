@@ -17,12 +17,20 @@ const tierItem = v.object({
   tierId: v.optional(v.string()),
 });
 
+const itemImageAspectRatio = v.union(
+  v.literal("landscape"),
+  v.literal("square"),
+  v.literal("portrait"),
+  v.literal("wide"),
+);
+
 const tierListFields = {
   ownerEmail: v.optional(v.string()),
   localId: v.optional(v.string()),
   shareId: v.optional(v.string()),
   title: v.string(),
   description: v.string(),
+  itemImageAspectRatio: v.optional(itemImageAspectRatio),
   tiers: v.array(tier),
   items: v.array(tierItem),
   createdAt: v.number(),
@@ -101,6 +109,7 @@ export const create = mutation({
     ownerEmail: v.string(),
     title: v.string(),
     description: v.string(),
+    itemImageAspectRatio: v.optional(itemImageAspectRatio),
     tiers: v.array(tier),
     items: v.array(tierItem),
     createdAt: v.number(),
@@ -135,6 +144,7 @@ export const update = mutation({
     ownerEmail: v.string(),
     title: v.string(),
     description: v.string(),
+    itemImageAspectRatio: v.optional(itemImageAspectRatio),
     tiers: v.array(tier),
     items: v.array(tierItem),
     updatedAt: v.number(),
@@ -178,6 +188,7 @@ export const syncLocalLists = mutation({
         localId: v.string(),
         title: v.string(),
         description: v.string(),
+        itemImageAspectRatio: v.optional(itemImageAspectRatio),
         tiers: v.array(tier),
         items: v.array(tierItem),
         createdAt: v.number(),
@@ -204,6 +215,9 @@ export const syncLocalLists = mutation({
         ownerEmail: normalizedOwnerEmail,
         title: list.title.trim() || "Untitled tier list",
         description: list.description.trim(),
+        ...(list.itemImageAspectRatio
+          ? { itemImageAspectRatio: list.itemImageAspectRatio }
+          : {}),
         tiers: list.tiers,
         items: list.items,
         createdAt: list.createdAt,

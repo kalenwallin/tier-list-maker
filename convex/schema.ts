@@ -21,6 +21,14 @@ export default defineSchema({
     shareId: v.optional(v.string()),
     title: v.string(),
     description: v.string(),
+    itemImageAspectRatio: v.optional(
+      v.union(
+        v.literal("landscape"),
+        v.literal("square"),
+        v.literal("portrait"),
+        v.literal("wide"),
+      ),
+    ),
     tiers: v.array(tier),
     items: v.array(tierItem),
     createdAt: v.number(),

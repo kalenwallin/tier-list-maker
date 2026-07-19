@@ -28,6 +28,7 @@ import {
   updateLocalTierList,
 } from "./local-tier-lists";
 import { getShareUrl } from "./site-url";
+import { DEFAULT_ITEM_IMAGE_ASPECT_RATIO } from "./tier-list";
 
 export type SyncMode = "local" | "cloud";
 
@@ -55,7 +56,10 @@ type UseTierListResult = {
   syncMode: SyncMode;
   shareUrl: string | null;
   saveList: (
-    updates: Pick<StoredTierList, "title" | "description" | "tiers" | "items">,
+    updates: Pick<
+      StoredTierList,
+      "title" | "description" | "itemImageAspectRatio" | "tiers" | "items"
+    >,
   ) => Promise<void>;
   removeList: () => Promise<void>;
   createShareLink: () => Promise<string>;
@@ -251,7 +255,10 @@ export function useTierList(id: string): UseTierListResult {
   ]);
 
   const saveList = useCallback(async (
-    updates: Pick<StoredTierList, "title" | "description" | "tiers" | "items">,
+    updates: Pick<
+      StoredTierList,
+      "title" | "description" | "itemImageAspectRatio" | "tiers" | "items"
+    >,
   ) => {
     if (!ownerEmail) {
       updateLocalTierList(id, updates);
@@ -263,6 +270,7 @@ export function useTierList(id: string): UseTierListResult {
       ownerEmail,
       title: updates.title.trim() || "Untitled tier list",
       description: updates.description.trim(),
+      itemImageAspectRatio: updates.itemImageAspectRatio,
       tiers: updates.tiers,
       items: updates.items,
       updatedAt: Date.now(),
@@ -307,11 +315,12 @@ export function useTierList(id: string): UseTierListResult {
   };
 }
 
-type ConvexTierList = Omit<StoredTierList, "id"> & {
+type ConvexTierList = Omit<StoredTierList, "id" | "itemImageAspectRatio"> & {
   _id: Id<"tierLists">;
   _creationTime: number;
   localId?: string;
   shareId?: string;
+  itemImageAspectRatio?: StoredTierList["itemImageAspectRatio"];
 };
 
 function fromConvexTierList(list: ConvexTierList): StoredTierList {
@@ -322,6 +331,8 @@ function fromConvexTierList(list: ConvexTierList): StoredTierList {
     shareId: list.shareId,
     title: list.title,
     description: list.description,
+    itemImageAspectRatio:
+      list.itemImageAspectRatio ?? DEFAULT_ITEM_IMAGE_ASPECT_RATIO,
     tiers: list.tiers,
     items: list.items,
     createdAt: list.createdAt,

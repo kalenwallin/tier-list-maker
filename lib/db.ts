@@ -1,4 +1,12 @@
-import { DEFAULT_TIERS, STARTER_ITEMS, Tier, TierItem } from "./tier-list";
+import {
+  DEFAULT_ITEM_IMAGE_ASPECT_RATIO,
+  DEFAULT_TIERS,
+  isItemImageAspectRatio,
+  ItemImageAspectRatio,
+  STARTER_ITEMS,
+  Tier,
+  TierItem,
+} from "./tier-list";
 
 export type StoredTierList = {
   id: string;
@@ -7,6 +15,7 @@ export type StoredTierList = {
   shareId?: string;
   title: string;
   description: string;
+  itemImageAspectRatio: ItemImageAspectRatio;
   tiers: Tier[];
   items: TierItem[];
   createdAt: number;
@@ -27,6 +36,7 @@ export function createBlankTierList(title = "New tier list"): NewTierList {
   return {
     title,
     description: "",
+    itemImageAspectRatio: DEFAULT_ITEM_IMAGE_ASPECT_RATIO,
     tiers: DEFAULT_TIERS.map((tier) => ({ ...tier })),
     items: STARTER_ITEMS.map((item) => ({ ...item })),
     createdAt: now,
@@ -89,6 +99,9 @@ function parseTierList(value: unknown): StoredTierList {
     shareId: typeof value.shareId === "string" ? value.shareId : undefined,
     title: value.title,
     description: value.description,
+    itemImageAspectRatio: isItemImageAspectRatio(value.itemImageAspectRatio)
+      ? value.itemImageAspectRatio
+      : DEFAULT_ITEM_IMAGE_ASPECT_RATIO,
     createdAt: value.createdAt,
     updatedAt: value.updatedAt,
     tiers: value.tiers.map(parseTier),

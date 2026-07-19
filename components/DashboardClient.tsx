@@ -654,6 +654,7 @@ export function DashboardClient() {
               <TierListPreview
                 exportRef={imageExportRef}
                 isExporting
+                itemImageAspectRatio={list.itemImageAspectRatio}
                 items={list.items}
                 key={list.id}
                 description={list.description}
