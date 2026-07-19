@@ -51,9 +51,113 @@ type DashboardSnapshot = {
   scrollY: number;
 };
 
+type DashboardSkeletonSnapshot = Pick<
+  DashboardSnapshot,
+  "hasWrappedCardSummary" | "isCompact" | "layout"
+> & {
+  cards: Array<{
+    id: string;
+    tierIds: string[];
+  }>;
+};
+
+const DEFAULT_DASHBOARD_SKELETON_CARDS = [
+  {
+    id: "dashboard-loading-card",
+    tierIds: ["s", "a", "b", "c", "d", "f"],
+  },
+];
+const DASHBOARD_SKELETON_ACTIONS = ["edit", "delete", "share", "download", "copy"];
+
 // This module lives for the lifetime of the client bundle, so route remounts can
 // synchronously recreate the shared element before TanStack captures the new view.
 let dashboardSnapshot: DashboardSnapshot | null = null;
+
+function DashboardSkeleton({
+  currentIsCompact,
+  currentLayout,
+  snapshot,
+}: {
+  currentIsCompact: boolean;
+  currentLayout: DashboardLayout;
+  snapshot: DashboardSkeletonSnapshot | null;
+}) {
+  const skeletonIsCompact = snapshot?.isCompact ?? currentIsCompact;
+  const skeletonLayout = snapshot?.layout ?? currentLayout;
+  const skeletonCards = snapshot?.cards ?? DEFAULT_DASHBOARD_SKELETON_CARDS;
+
+  return (
+    <div aria-busy="true" className="dashboard-skeleton" role="status">
+      <span className="visually-hidden">Loading your tier lists</span>
+      <div aria-hidden="true">
+        <section className="toolbar">
+          <div className="dashboard-skeleton-heading">
+            <span className="dashboard-skeleton-block dashboard-skeleton-title" />
+            <span className="dashboard-skeleton-block dashboard-skeleton-subtitle" />
+          </div>
+          <div className="nav-actions">
+            <span className="button dashboard-skeleton-block dashboard-skeleton-button-wide" />
+            <span className="button dashboard-skeleton-block dashboard-skeleton-button" />
+            <span className="button dashboard-skeleton-block dashboard-skeleton-button" />
+          </div>
+        </section>
+
+        <div className="dashboard-layout-controls">
+          <span className="button dashboard-skeleton-block dashboard-skeleton-layout" />
+          <span className="button dashboard-skeleton-block dashboard-skeleton-compact" />
+        </div>
+
+        <section
+          className={[
+            "grid",
+            skeletonLayout === "list" ? "is-list-layout" : "is-card-layout",
+            skeletonIsCompact ? "is-compact" : "",
+            snapshot?.hasWrappedCardSummary ? "has-wrapped-card-summary" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        >
+          {skeletonCards.map((card) => (
+            <article className="list-card dashboard-skeleton-card" key={card.id}>
+              <span className="list-card-item-count dashboard-skeleton-block dashboard-skeleton-count" />
+              <div className="list-card-details list-card-summary">
+                <span className="dashboard-skeleton-block dashboard-skeleton-card-title" />
+                <span className="dashboard-skeleton-block dashboard-skeleton-card-copy" />
+              </div>
+              <div className="dashboard-tier-preview list-card-summary">
+                {card.tierIds.map((tierId) => (
+                  <div className="dashboard-tier-preview-row" key={tierId}>
+                    <span className="dashboard-skeleton-block dashboard-skeleton-tier-label" />
+                    <div className="dashboard-tier-preview-items">
+                      <span className="dashboard-skeleton-block dashboard-skeleton-tier-item" />
+                      <span className="dashboard-skeleton-block dashboard-skeleton-tier-item" />
+                    </div>
+                  </div>
+                ))}
+                <div className="dashboard-tier-preview-tray">
+                  <span className="dashboard-skeleton-block dashboard-skeleton-tier-item" />
+                  <span className="dashboard-skeleton-block dashboard-skeleton-tier-item" />
+                </div>
+              </div>
+              <div className="nav-actions" style={{ justifyContent: "flex-start" }}>
+                {DASHBOARD_SKELETON_ACTIONS.map((action) => (
+                  <span className="button icon dashboard-skeleton-block" key={action} />
+                ))}
+              </div>
+            </article>
+          ))}
+          <div className="new-list-card dashboard-skeleton-new-list">
+            <span className="new-list-card-icon dashboard-skeleton-block" />
+            <span className="new-list-card-copy">
+              <span className="dashboard-skeleton-block dashboard-skeleton-new-title" />
+              <span className="dashboard-skeleton-block dashboard-skeleton-new-copy" />
+            </span>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
 
 export function DashboardClient() {
   const {
@@ -85,6 +189,19 @@ export function DashboardClient() {
     return dashboardSnapshot?.ownerEmail === ownerEmail
       ? dashboardSnapshot
       : null;
+  });
+  const [loadingSnapshot] = useState<DashboardSkeletonSnapshot | null>(() => {
+    if (!dashboardSnapshot) return null;
+
+    return {
+      hasWrappedCardSummary: dashboardSnapshot.hasWrappedCardSummary,
+      isCompact: dashboardSnapshot.isCompact,
+      layout: dashboardSnapshot.layout,
+      cards: dashboardSnapshot.lists.map((list) => ({
+        id: list.id,
+        tierIds: list.tiers.map((tier) => tier.id),
+      })),
+    };
   });
   const initialSnapshotRef = useRef(initialSnapshot);
   const [layout, setLayout] = useState<DashboardLayout>(
@@ -519,9 +636,11 @@ export function DashboardClient() {
 
   if (dashboardLists === undefined) {
     return (
-      <div className="panel panel-pad">
-        <Loader2 size={18} /> Loading tier lists
-      </div>
+      <DashboardSkeleton
+        currentIsCompact={isCompact}
+        currentLayout={layout}
+        snapshot={loadingSnapshot}
+      />
     );
   }
 
