@@ -38,22 +38,22 @@ export function updateLocalTierList(
   >,
 ) {
   const lists = readLocalTierLists();
+  const list = lists.find((candidate) => candidate.id === id);
+  if (!list) return;
+
   const updatedAt = Date.now();
-  writeLocalTierLists(
-    lists.map((list) =>
-      list.id === id
-        ? {
-            ...list,
-            title: updates.title.trim() || "Untitled tier list",
-            description: updates.description.trim(),
-            itemImageAspectRatio: updates.itemImageAspectRatio,
-            tiers: updates.tiers,
-            items: updates.items,
-            updatedAt,
-          }
-        : list,
-    ),
-  );
+  writeLocalTierLists([
+    {
+      ...list,
+      title: updates.title.trim() || "Untitled tier list",
+      description: updates.description.trim(),
+      itemImageAspectRatio: updates.itemImageAspectRatio,
+      tiers: updates.tiers,
+      items: updates.items,
+      updatedAt,
+    },
+    ...lists.filter((candidate) => candidate.id !== id),
+  ]);
 }
 
 export function removeLocalTierList(id: string) {

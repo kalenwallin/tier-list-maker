@@ -25,7 +25,13 @@ import {
   useState,
   ViewTransition,
 } from "react";
-import type { StoredTierList } from "@/lib/db";
+import {
+  clearDashboardSnapshot,
+  type DashboardLayout,
+  type DashboardSnapshot,
+  getDashboardSnapshot,
+  rememberDashboardSnapshot,
+} from "@/lib/dashboard-snapshot";
 import {
   copyPngToClipboard,
   downloadPng,
@@ -38,18 +44,6 @@ import { TierListPreview } from "./TierListPreview";
 
 const DASHBOARD_PREFERENCES_KEY = "tier-list-maker-dashboard-preferences-v1";
 const MIN_TWO_CARD_LAYOUT_WIDTH = 260 * 2 + 16;
-
-type DashboardLayout = "cards" | "list";
-
-type DashboardSnapshot = {
-  activeMorphListId: string;
-  hasWrappedCardSummary: boolean;
-  isCompact: boolean;
-  layout: DashboardLayout;
-  lists: StoredTierList[];
-  ownerEmail: string | undefined;
-  scrollY: number;
-};
 
 type DashboardSkeletonSnapshot = Pick<
   DashboardSnapshot,
@@ -68,10 +62,6 @@ const DEFAULT_DASHBOARD_SKELETON_CARDS = [
   },
 ];
 const DASHBOARD_SKELETON_ACTIONS = ["edit", "delete", "share", "download", "copy"];
-
-// This module lives for the lifetime of the client bundle, so route remounts can
-// synchronously recreate the shared element before TanStack captures the new view.
-let dashboardSnapshot: DashboardSnapshot | null = null;
 
 function DashboardSkeleton({
   currentIsCompact,
@@ -186,18 +176,17 @@ export function DashboardClient() {
   const [isRemoving, setIsRemoving] = useState(false);
   const [pendingRemovalId, setPendingRemovalId] = useState<string | null>(null);
   const [initialSnapshot] = useState(() => {
-    return dashboardSnapshot?.ownerEmail === ownerEmail
-      ? dashboardSnapshot
-      : null;
+    const snapshot = getDashboardSnapshot();
+    return snapshot?.ownerEmail === ownerEmail ? snapshot : null;
   });
   const [loadingSnapshot] = useState<DashboardSkeletonSnapshot | null>(() => {
-    if (!dashboardSnapshot) return null;
+    if (!initialSnapshot) return null;
 
     return {
-      hasWrappedCardSummary: dashboardSnapshot.hasWrappedCardSummary,
-      isCompact: dashboardSnapshot.isCompact,
-      layout: dashboardSnapshot.layout,
-      cards: dashboardSnapshot.lists.map((list) => ({
+      hasWrappedCardSummary: initialSnapshot.hasWrappedCardSummary,
+      isCompact: initialSnapshot.isCompact,
+      layout: initialSnapshot.layout,
+      cards: initialSnapshot.lists.map((list) => ({
         id: list.id,
         tierIds: list.tiers.map((tier) => tier.id),
       })),
@@ -245,7 +234,7 @@ export function DashboardClient() {
     if (!snapshot) return;
 
     window.scrollTo({ top: snapshot.scrollY });
-    if (dashboardSnapshot === snapshot) dashboardSnapshot = null;
+    clearDashboardSnapshot(snapshot);
     initialSnapshotRef.current = null;
   }, []);
 
@@ -428,7 +417,7 @@ export function DashboardClient() {
   function rememberDashboardState(activeMorphListId: string) {
     if (!dashboardLists) return;
 
-    dashboardSnapshot = {
+    rememberDashboardSnapshot({
       activeMorphListId,
       hasWrappedCardSummary,
       isCompact,
@@ -436,7 +425,7 @@ export function DashboardClient() {
       lists: dashboardLists,
       ownerEmail,
       scrollY: window.scrollY,
-    };
+    });
   }
 
   function toggleCompact() {

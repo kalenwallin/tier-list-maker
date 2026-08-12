@@ -22,6 +22,7 @@ import {
   ViewTransition,
 } from "react";
 import { createPortal, flushSync } from "react-dom";
+import { promoteDashboardSnapshotList } from "@/lib/dashboard-snapshot";
 import { StoredTierList } from "@/lib/db";
 import { copyPngToClipboard, downloadPng, renderTierListPng } from "@/lib/image-export";
 import {
@@ -69,6 +70,7 @@ export function TierListEditor({
   const hydratedListId = useRef<string | null>(initialList?.id ?? null);
   const lastSavedSnapshot = useRef(initialList ? createSnapshot(initialList) : "");
   const skipAutosave = useRef(initialList === undefined);
+  const didSaveChanges = useRef(false);
   const isRemovingRef = useRef(false);
 
   const [title, setTitle] = useState(initialList?.title ?? "");
@@ -157,6 +159,7 @@ export function TierListEditor({
       try {
         await saveList({ title, description, itemImageAspectRatio, tiers, items });
         lastSavedSnapshot.current = snapshot;
+        didSaveChanges.current = true;
         setSaveStatus(syncMode === "cloud" ? "Saved to cloud" : "Saved locally");
       } finally {
         setIsSaving(false);
@@ -325,6 +328,7 @@ export function TierListEditor({
     try {
       await saveList({ title, description, itemImageAspectRatio, tiers, items });
       lastSavedSnapshot.current = snapshot;
+      didSaveChanges.current = true;
       setSaveStatus(syncMode === "cloud" ? "Saved to cloud" : "Saved locally");
       return true;
     } catch {
@@ -337,6 +341,16 @@ export function TierListEditor({
 
   async function navigateToDashboard() {
     if (!(await saveDraftBeforeNavigation())) return;
+
+    if (didSaveChanges.current) {
+      promoteDashboardSnapshotList(id, {
+        title,
+        description,
+        itemImageAspectRatio,
+        tiers,
+        items,
+      });
+    }
 
     if (!mobilePerformanceMode) {
       flushSync(() => {
