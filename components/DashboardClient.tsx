@@ -11,6 +11,7 @@ import {
   Loader2,
   Minimize2,
   Pencil,
+  Search,
   Share2,
   Trash2,
   Upload,
@@ -93,8 +94,11 @@ function DashboardSkeleton({
         </section>
 
         <div className="dashboard-layout-controls">
-          <span className="button dashboard-skeleton-block dashboard-skeleton-layout" />
-          <span className="button dashboard-skeleton-block dashboard-skeleton-compact" />
+          <span className="input dashboard-skeleton-block dashboard-skeleton-search" />
+          <div className="dashboard-view-controls">
+            <span className="button dashboard-skeleton-block dashboard-skeleton-layout" />
+            <span className="button dashboard-skeleton-block dashboard-skeleton-compact" />
+          </div>
         </div>
 
         <section
@@ -171,6 +175,7 @@ export function DashboardClient() {
   const listGridRef = useRef<HTMLElement>(null);
   const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
   const removeDialogRef = useRef<HTMLDialogElement>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
@@ -223,10 +228,20 @@ export function DashboardClient() {
     lists === undefined || isRestoringPaginatedSnapshot
       ? initialSnapshot?.lists
       : lists;
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const isSearchActive = normalizedSearchQuery.length > 0;
+  const filteredDashboardLists = (dashboardLists ?? []).filter(
+    (list) =>
+      list.title.toLowerCase().includes(normalizedSearchQuery) ||
+      list.description.toLowerCase().includes(normalizedSearchQuery),
+  );
+  const isSearchingMore = Boolean(
+    isSearchActive && syncMode === "cloud" && (canLoadMore || isLoadingMore),
+  );
   const pendingRemovalList = dashboardLists?.find(
     (list) => list.id === pendingRemovalId,
   );
-  const dashboardListCount = dashboardLists?.length ?? 0;
+  const dashboardListCount = filteredDashboardLists.length;
   const effectiveLayout = isSingleColumnLayout ? "list" : layout;
 
   useLayoutEffect(() => {
@@ -250,6 +265,25 @@ export function DashboardClient() {
 
     loadMore();
   }, [canLoadMore, initialSnapshot, lists, loadMore]);
+
+  useEffect(() => {
+    if (
+      !isSearchActive ||
+      !canLoadMore ||
+      isLoadingMore ||
+      isRestoringPaginatedSnapshot
+    ) {
+      return;
+    }
+
+    loadMore();
+  }, [
+    canLoadMore,
+    isLoadingMore,
+    isRestoringPaginatedSnapshot,
+    isSearchActive,
+    loadMore,
+  ]);
 
   useEffect(() => {
     const sentinel = loadMoreSentinelRef.current;
@@ -412,7 +446,13 @@ export function DashboardClient() {
       isActive = false;
       resizeObserver.disconnect();
     };
-  }, [dashboardLists, effectiveLayout, isCompact, mobilePerformanceMode]);
+  }, [
+    dashboardLists,
+    effectiveLayout,
+    isCompact,
+    mobilePerformanceMode,
+    normalizedSearchQuery,
+  ]);
 
   function rememberDashboardState(activeMorphListId: string) {
     if (!dashboardLists) return;
@@ -769,35 +809,70 @@ export function DashboardClient() {
       ) : (
         <>
           <div className="dashboard-layout-controls">
-            {isSingleColumnLayout ? null : (
-              <fieldset aria-label="Dashboard layout" className="layout-switcher">
-                <button
-                  aria-pressed={layout === "cards"}
-                  className="button layout-button"
-                  onClick={() => changeLayout("cards")}
-                  type="button"
-                >
-                  <LayoutGrid size={16} /> Cards
-                </button>
-                <button
-                  aria-pressed={layout === "list"}
-                  className="button layout-button"
-                  onClick={() => changeLayout("list")}
-                  type="button"
-                >
-                  <List size={16} /> List
-                </button>
-              </fieldset>
-            )}
-            <button
-              aria-pressed={isCompact}
-              className="button compact-button"
-              onClick={toggleCompact}
-              type="button"
-            >
-              <Minimize2 size={16} /> Compact
-            </button>
+            <label className="dashboard-search">
+              <span className="visually-hidden">Search tier lists</span>
+              <Search aria-hidden="true" className="dashboard-search-icon" size={18} />
+              <input
+                aria-controls="dashboard-tier-lists"
+                className="input"
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search by title or description"
+                type="search"
+                value={searchQuery}
+              />
+            </label>
+            <div className="dashboard-view-controls">
+              {isSingleColumnLayout ? null : (
+                <fieldset aria-label="Dashboard layout" className="layout-switcher">
+                  <button
+                    aria-pressed={layout === "cards"}
+                    className="button layout-button"
+                    onClick={() => changeLayout("cards")}
+                    type="button"
+                  >
+                    <LayoutGrid size={16} /> Cards
+                  </button>
+                  <button
+                    aria-pressed={layout === "list"}
+                    className="button layout-button"
+                    onClick={() => changeLayout("list")}
+                    type="button"
+                  >
+                    <List size={16} /> List
+                  </button>
+                </fieldset>
+              )}
+              <button
+                aria-pressed={isCompact}
+                className="button compact-button"
+                onClick={toggleCompact}
+                type="button"
+              >
+                <Minimize2 size={16} /> Compact
+              </button>
+            </div>
           </div>
+          <span aria-live="polite" className="visually-hidden">
+            {isSearchActive
+              ? isSearchingMore
+                ? "Searching all tier lists"
+                : `${filteredDashboardLists.length} matching tier ${
+                    filteredDashboardLists.length === 1 ? "list" : "lists"
+                  }`
+              : ""}
+          </span>
+          {filteredDashboardLists.length === 0 ? (
+            <section aria-live="polite" className="panel panel-pad">
+              <h2>
+                {isSearchingMore ? "Searching your tier lists" : "No matches found"}
+              </h2>
+              <p className="muted">
+                {isSearchingMore
+                  ? "Checking the rest of your cloud-synced tier lists."
+                  : `No titles or descriptions match “${searchQuery.trim()}”.`}
+              </p>
+            </section>
+          ) : null}
           <section
             className={[
               "grid",
@@ -807,9 +882,10 @@ export function DashboardClient() {
             ]
               .filter(Boolean)
               .join(" ")}
+            id="dashboard-tier-lists"
             ref={listGridRef}
           >
-            {dashboardLists.map((list) => {
+            {filteredDashboardLists.map((list) => {
               const description = list.description.trim();
               const unplacedItems = list.items.filter((item) => !item.tierId);
 
@@ -1039,20 +1115,22 @@ export function DashboardClient() {
                 </ViewTransition>
               );
             })}
-            <button
-              className="new-list-card"
-              disabled={isCreating}
-              onClick={() => void create()}
-              type="button"
-            >
-              <span className="new-list-card-icon" aria-hidden="true">
-                {isCreating ? <Loader2 size={24} /> : <FilePlus2 size={24} />}
-              </span>
-              <span className="new-list-card-copy">
-                <strong>{isCreating ? "Creating list" : "Create a new list"}</strong>
-                <span>Start with a blank tier list</span>
-              </span>
-            </button>
+            {isSearchActive ? null : (
+              <button
+                className="new-list-card"
+                disabled={isCreating}
+                onClick={() => void create()}
+                type="button"
+              >
+                <span className="new-list-card-icon" aria-hidden="true">
+                  {isCreating ? <Loader2 size={24} /> : <FilePlus2 size={24} />}
+                </span>
+                <span className="new-list-card-copy">
+                  <strong>{isCreating ? "Creating list" : "Create a new list"}</strong>
+                  <span>Start with a blank tier list</span>
+                </span>
+              </button>
+            )}
           </section>
           {syncMode === "cloud" ? (
             <div
@@ -1060,10 +1138,14 @@ export function DashboardClient() {
               className="dashboard-load-more"
               ref={loadMoreSentinelRef}
             >
-              {isLoadingMore ? (
+              {isSearchingMore ? (
                 <>
-                  <Loader2 size={17} /> Loading more tier lists
+                  <Loader2 size={17} /> Searching all tier lists
                 </>
+              ) : isSearchActive ? (
+                `${filteredDashboardLists.length} matching tier ${
+                  filteredDashboardLists.length === 1 ? "list" : "lists"
+                }`
               ) : canLoadMore ? (
                 <button className="button ghost" onClick={loadMore} type="button">
                   Load more tier lists
