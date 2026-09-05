@@ -1,4 +1,4 @@
-# Copy this file to .dev.vars for `pnpm preview`.
+# Copy this file to .dev.vars for `bun run preview`.
 # Keep production secrets in Cloudflare Workers secrets, not in wrangler.jsonc.
 WORKOS_API_KEY=
 WORKOS_CLIENT_ID=

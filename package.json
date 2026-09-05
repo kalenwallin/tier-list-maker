@@ -28,15 +28,21 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.11",
-    "@cloudflare/vite-plugin": "^1.54.2",
-    "@tanstack/intent": "^0.3.7",
+    "@cloudflare/vite-plugin": "^1.54.3",
+    "@tanstack/intent": "^0.3.8",
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "@vitejs/plugin-react": "^6.1.1",
     "typescript": "^6.0.3",
     "vite": "^8.2.2",
-    "wrangler": "^4.127.1"
+    "wrangler": "^4.128.0"
   },
-  "packageManager": "pnpm@11.25.0"
+  "trustedDependencies": [
+    "esbuild",
+    "sharp",
+    "unrs-resolver",
+    "workerd"
+  ],
+  "packageManager": "bun@1.3.8"
 }

@@ -14,11 +14,11 @@ Lists are synced between devices with Convex.
 ## Run Locally
 
 ```bash
-pnpm install
-pnpm dev
+bun install
+bun run dev
 ```
 
-Open `http://localhost:3001`. `pnpm convex dev` writes
+Open `http://localhost:3001`. `bunx convex dev` writes
 `NEXT_PUBLIC_CONVEX_URL` to `.env.local` after you choose or create a Convex
 deployment.
 
@@ -30,13 +30,13 @@ plugin. A separate Pages project is not required.
 Before the first deploy, configure these runtime secrets in Cloudflare:
 
 ```bash
-pnpm wrangler secret put WORKOS_API_KEY
-pnpm wrangler secret put WORKOS_CLIENT_ID
-pnpm wrangler secret put WORKOS_COOKIE_PASSWORD
-pnpm wrangler secret put WORKOS_REDIRECT_URI
-pnpm wrangler secret put NEXT_PUBLIC_CONVEX_URL
-pnpm wrangler secret put NEXT_PUBLIC_APP_URL
-pnpm wrangler secret put NEXT_PUBLIC_SITE_URL
+bunx wrangler secret put WORKOS_API_KEY
+bunx wrangler secret put WORKOS_CLIENT_ID
+bunx wrangler secret put WORKOS_COOKIE_PASSWORD
+bunx wrangler secret put WORKOS_REDIRECT_URI
+bunx wrangler secret put NEXT_PUBLIC_CONVEX_URL
+bunx wrangler secret put NEXT_PUBLIC_APP_URL
+bunx wrangler secret put NEXT_PUBLIC_SITE_URL
 ```
 
 Use `https://tierlistmaker.win` for both app URL values. Add
@@ -44,14 +44,14 @@ Use `https://tierlistmaker.win` for both app URL values. Add
 `https://tierlistmaker.win/sign-in` as the WorkOS sign-in endpoint.
 
 For a local production-runtime check, copy `.dev.vars.example` to `.dev.vars`
-and run `pnpm preview`. To build without starting a server, run
-`pnpm build:cloudflare`. Deploy the Convex backend and Worker together with:
+and run `bun run preview`. To build without starting a server, run
+`bun run build:cloudflare`. Deploy the Convex backend and Worker together with:
 
 ```bash
-pnpm deploy
+bun run deploy
 ```
 
-For Cloudflare Workers Builds, use `pnpm deploy` as the deploy command. Build
+For Cloudflare Workers Builds, use `bun run deploy` as the deploy command. Build
 variables and runtime variables are separate in Workers Builds, so add
 `CONVEX_DEPLOY_KEY` and every public variable needed by the Vite build under
 Build Variables and secrets as well as configuring the runtime secrets above.
