@@ -366,7 +366,7 @@ function Tile({
     >
       <div className="tile-media">
         {item.imageUrl ? (
-          <img alt="" src={item.imageUrl} />
+          <img alt="" draggable={false} src={item.imageUrl} />
         ) : (
           item.label.slice(0, 1).toUpperCase()
         )}

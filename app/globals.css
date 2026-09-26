@@ -1138,6 +1138,14 @@ button:disabled {
 
 .tile[draggable="true"] {
   cursor: grab;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.tile[draggable="true"] img {
+  pointer-events: none;
+  -webkit-user-drag: none;
 }
 
 .tile-position {
