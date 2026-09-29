@@ -22,6 +22,16 @@ Open `http://localhost:3001`. `bunx convex dev` writes
 `NEXT_PUBLIC_CONVEX_URL` to `.env.local` after you choose or create a Convex
 deployment.
 
+To test from another device on the same Tailscale network, put the dev server
+behind Tailscale Serve, which terminates HTTPS with a trusted certificate so HMR
+works over `wss://`:
+
+```bash
+tailscale serve --bg --https=8441 http://127.0.0.1:3001
+```
+
+Then open `https://macbook-pro.tail22344d.ts.net:8441`.
+
 ## Cloudflare deployment
 
 TanStack Start runs on Cloudflare Workers through Cloudflare's official Vite

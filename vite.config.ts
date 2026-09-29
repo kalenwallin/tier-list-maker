@@ -30,4 +30,8 @@ export default defineConfig({
       "@": fileURLToPath(new URL(".", import.meta.url)),
     },
   },
+  server: {
+    // Tailscale Serve forwards the tailnet hostname for testing on other devices.
+    allowedHosts: ["macbook-pro.tail22344d.ts.net"],
+  },
 });
