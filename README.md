@@ -61,8 +61,12 @@ deployment before building and typechecking, overriding the development URL in
 `.env.local`. It also sets both public app URLs to `https://tierlistmaker.win` so
 shared links use the production domain.
 
-For Cloudflare Workers Builds, use `bun run deploy` as the deploy command. Build
-variables and runtime variables are separate in Workers Builds, so add
+For Cloudflare Workers Builds, leave **Build command** empty and set **Deploy
+command** to `bun run deploy`. This script builds and typechecks the app before
+deploying Convex and the Worker. Use Bun commands in the dashboard to match the
+repository's package manager; old `pnpm exec` commands reject `bun@1.3.8`.
+
+Build variables and runtime variables are separate in Workers Builds, so add
 `CONVEX_DEPLOY_KEY` and every public variable needed by the Vite build under
 Build Variables and secrets as well as configuring the runtime secrets above.
 
