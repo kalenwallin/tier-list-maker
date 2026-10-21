@@ -70,3 +70,18 @@ Runtime variables added in the Cloudflare dashboard are preserved on deploy by
 `keep_vars` in `wrangler.jsonc`. Encrypted runtime secrets are preserved by
 Wrangler independently and should continue to be managed with `wrangler secret`
 or the dashboard.
+
+## Sign-up notifications
+
+WorkOS sends `user.created` events to the production Convex HTTP endpoint
+`https://scintillating-pika-461.convex.site/workos/webhook`, which verifies the
+`WorkOS-Signature` header and posts each new user to a private Discord channel.
+Set both values on the production Convex deployment:
+
+```bash
+bunx convex env set WORKOS_WEBHOOK_SECRET --prod
+bunx convex env set SIGNUP_DISCORD_WEBHOOK_URL --prod
+```
+
+The WorkOS secret comes from the webhook endpoint's settings in WorkOS. Deployments
+without both values reject deliveries.
