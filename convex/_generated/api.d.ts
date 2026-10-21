@@ -8,8 +8,12 @@
  * @module
  */
 
+import type * as auth from "../auth.js";
+import type * as authEmail from "../authEmail.js";
 import type * as http from "../http.js";
+import type * as signupNotifications from "../signupNotifications.js";
 import type * as tierLists from "../tierLists.js";
+import type * as users from "../users.js";
 
 import type {
   ApiFromModules,
@@ -18,8 +22,12 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  auth: typeof auth;
+  authEmail: typeof authEmail;
   http: typeof http;
+  signupNotifications: typeof signupNotifications;
   tierLists: typeof tierLists;
+  users: typeof users;
 }>;
 
 /**

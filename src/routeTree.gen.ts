@@ -10,12 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as CallbackRouteImport } from './routes/callback'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SignUpRouteImport } from './routes/sign-up'
-import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
-import { Route as AuthSignoutRouteImport } from './routes/auth/signout'
 import { Route as ListsIdRouteImport } from './routes/lists/$id'
 import { Route as ListsNewRouteImport } from './routes/lists/new'
 import { Route as ShareShareIdRouteImport } from './routes/share/$shareId'
@@ -24,11 +21,6 @@ import { Route as ShareShareIdOpengraphImageRouteImport } from './routes/share/$
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CallbackRoute = CallbackRouteImport.update({
-  id: '/callback',
-  path: '/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -44,16 +36,6 @@ const SignInRoute = SignInRouteImport.update({
 const SignUpRoute = SignUpRouteImport.update({
   id: '/sign-up',
   path: '/sign-up',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthCallbackRoute = AuthCallbackRouteImport.update({
-  id: '/auth/callback',
-  path: '/auth/callback',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthSignoutRoute = AuthSignoutRouteImport.update({
-  id: '/auth/signout',
-  path: '/auth/signout',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ListsIdRoute = ListsIdRouteImport.update({
@@ -80,12 +62,9 @@ const ShareShareIdOpengraphImageRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/callback': typeof CallbackRoute
   '/dashboard': typeof DashboardRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
-  '/auth/callback': typeof AuthCallbackRoute
-  '/auth/signout': typeof AuthSignoutRoute
   '/lists/$id': typeof ListsIdRoute
   '/lists/new': typeof ListsNewRoute
   '/share/$shareId': typeof ShareShareIdRouteWithChildren
@@ -93,12 +72,9 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/callback': typeof CallbackRoute
   '/dashboard': typeof DashboardRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
-  '/auth/callback': typeof AuthCallbackRoute
-  '/auth/signout': typeof AuthSignoutRoute
   '/lists/$id': typeof ListsIdRoute
   '/lists/new': typeof ListsNewRoute
   '/share/$shareId': typeof ShareShareIdRouteWithChildren
@@ -107,12 +83,9 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/callback': typeof CallbackRoute
   '/dashboard': typeof DashboardRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
-  '/auth/callback': typeof AuthCallbackRoute
-  '/auth/signout': typeof AuthSignoutRoute
   '/lists/$id': typeof ListsIdRoute
   '/lists/new': typeof ListsNewRoute
   '/share/$shareId': typeof ShareShareIdRouteWithChildren
@@ -122,12 +95,9 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/callback'
     | '/dashboard'
     | '/sign-in'
     | '/sign-up'
-    | '/auth/callback'
-    | '/auth/signout'
     | '/lists/$id'
     | '/lists/new'
     | '/share/$shareId'
@@ -135,12 +105,9 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/callback'
     | '/dashboard'
     | '/sign-in'
     | '/sign-up'
-    | '/auth/callback'
-    | '/auth/signout'
     | '/lists/$id'
     | '/lists/new'
     | '/share/$shareId'
@@ -148,12 +115,9 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/callback'
     | '/dashboard'
     | '/sign-in'
     | '/sign-up'
-    | '/auth/callback'
-    | '/auth/signout'
     | '/lists/$id'
     | '/lists/new'
     | '/share/$shareId'
@@ -162,12 +126,9 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  CallbackRoute: typeof CallbackRoute
   DashboardRoute: typeof DashboardRoute
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
-  AuthCallbackRoute: typeof AuthCallbackRoute
-  AuthSignoutRoute: typeof AuthSignoutRoute
   ListsIdRoute: typeof ListsIdRoute
   ListsNewRoute: typeof ListsNewRoute
   ShareShareIdRoute: typeof ShareShareIdRouteWithChildren
@@ -180,13 +141,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/callback': {
-      id: '/callback'
-      path: '/callback'
-      fullPath: '/callback'
-      preLoaderRoute: typeof CallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -208,20 +162,6 @@ declare module '@tanstack/react-router' {
       path: '/sign-up'
       fullPath: '/sign-up'
       preLoaderRoute: typeof SignUpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth/callback': {
-      id: '/auth/callback'
-      path: '/auth/callback'
-      fullPath: '/auth/callback'
-      preLoaderRoute: typeof AuthCallbackRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth/signout': {
-      id: '/auth/signout'
-      path: '/auth/signout'
-      fullPath: '/auth/signout'
-      preLoaderRoute: typeof AuthSignoutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lists/$id': {
@@ -269,12 +209,9 @@ const ShareShareIdRouteWithChildren = ShareShareIdRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  CallbackRoute: CallbackRoute,
   DashboardRoute: DashboardRoute,
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
-  AuthCallbackRoute: AuthCallbackRoute,
-  AuthSignoutRoute: AuthSignoutRoute,
   ListsIdRoute: ListsIdRoute,
   ListsNewRoute: ListsNewRoute,
   ShareShareIdRoute: ShareShareIdRouteWithChildren,

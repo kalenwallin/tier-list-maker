@@ -8,23 +8,26 @@
     "build": "vite build && tsc --noEmit",
     "build:cloudflare": "vite build && tsc --noEmit",
     "preview": "vite preview --port 3001",
-    "deploy": "convex deploy --cmd 'vite build' && wrangler deploy",
+    "deploy": "convex deploy --cmd-url-env-var-name NEXT_PUBLIC_CONVEX_URL --cmd 'bun run build' && wrangler deploy",
     "cf-typegen": "wrangler types --env-file .dev.vars.example --include-runtime=false --env-interface CloudflareEnv cloudflare-env.d.ts",
     "start": "vite preview --port 3001",
     "lint": "biome lint .",
     "format": "biome format --write ."
   },
   "dependencies": {
+    "@auth/core": "^0.41.1",
     "@cloudflare/pages-plugin-vercel-og": "^0.1.2",
+    "@convex-dev/auth": "^0.0.96",
+    "@oslojs/crypto": "^1.0.1",
     "@tanstack/react-router": "^1.170.39",
     "@tanstack/react-start": "^1.168.58",
     "@vercel/og": "^0.11.1",
-    "@workos/authkit-tanstack-react-start": "^0.11.1",
     "convex": "^1.46.0",
     "html-to-image": "latest",
     "lucide-react": "latest",
     "react": "19.3.0-canary-c0c39a6b-20260709",
-    "react-dom": "19.3.0-canary-c0c39a6b-20260709"
+    "react-dom": "19.3.0-canary-c0c39a6b-20260709",
+    "resend": "^6.34.1"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",

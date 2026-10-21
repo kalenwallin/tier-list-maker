@@ -1,9 +1,11 @@
 import { api } from "@/convex/_generated/api";
-import type { Doc } from "@/convex/_generated/dataModel";
 import { ConvexHttpClient } from "convex/browser";
+import type { FunctionReturnType } from "convex/server";
 import { getPublicEnv } from "./site-url";
 
-export type SharedTierList = Doc<"tierLists">;
+export type SharedTierList = NonNullable<
+  FunctionReturnType<typeof api.tierLists.getShared>
+>;
 
 const SITE_NAME = "Tier List Maker";
 const DEFAULT_DESCRIPTION = "Create tier lists and share them with friends.";

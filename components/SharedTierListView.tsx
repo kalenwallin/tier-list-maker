@@ -1,33 +1,19 @@
 "use client";
 
 import { Link } from "@tanstack/react-router";
-import { useAuth } from "@workos/authkit-tanstack-react-start/client";
 import { useQuery } from "convex/react";
 import { Check, Copy, Loader2, Pencil } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
-import type { StoredTierList } from "@/lib/db";
 import { getShareUrl } from "@/lib/site-url";
 import { TierListPreview } from "./TierListPreview";
 
-type SharedTierList = StoredTierList & {
-  _id: Id<"tierLists">;
-};
-
 export function SharedTierListView({ shareId }: { shareId: string }) {
-  const { user, loading: authLoading } = useAuth();
   const [topbarLeadingActionSlot, setTopbarLeadingActionSlot] =
     useState<HTMLElement | null>(null);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">("idle");
-  const list = useQuery(api.tierLists.getShared, { shareId }) as
-    | SharedTierList
-    | null
-    | undefined;
-  const ownerEmail = list?.ownerEmail?.trim().toLowerCase();
-  const viewerEmail = user?.email?.trim().toLowerCase();
-  const canEdit = !authLoading && Boolean(ownerEmail && viewerEmail === ownerEmail);
+  const list = useQuery(api.tierLists.getShared, { shareId });
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
@@ -71,7 +57,7 @@ export function SharedTierListView({ shareId }: { shareId: string }) {
       {topbarLeadingActionSlot
         ? createPortal(
             <>
-              {canEdit ? (
+              {list.isOwner ? (
                 <Link
                   className="button"
                   params={{ id: list._id }}

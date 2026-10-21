@@ -8,7 +8,8 @@ Lists are synced between devices with Convex.
 - TanStack Start with TanStack Router and Vite
 - React canary view transitions for route, shared-element, and editor animations
 - Convex for synced tier list storage
-- WorkOS AuthKit for authentication
+- Convex Auth for authentication, with email codes and passwords sent through
+  Resend
 - `html-to-image` for PNG exports
 
 ## Run Locally
@@ -40,18 +41,12 @@ plugin. A separate Pages project is not required.
 Before the first deploy, configure these runtime secrets in Cloudflare:
 
 ```bash
-bunx wrangler secret put WORKOS_API_KEY
-bunx wrangler secret put WORKOS_CLIENT_ID
-bunx wrangler secret put WORKOS_COOKIE_PASSWORD
-bunx wrangler secret put WORKOS_REDIRECT_URI
 bunx wrangler secret put NEXT_PUBLIC_CONVEX_URL
 bunx wrangler secret put NEXT_PUBLIC_APP_URL
 bunx wrangler secret put NEXT_PUBLIC_SITE_URL
 ```
 
-Use `https://tierlistmaker.win` for both app URL values. Add
-`https://tierlistmaker.win/callback` as a WorkOS redirect URI and
-`https://tierlistmaker.win/sign-in` as the WorkOS sign-in endpoint.
+Use `https://tierlistmaker.win` for both app URL values.
 
 For a local production-runtime check, copy `.dev.vars.example` to `.dev.vars`
 and run `bun run preview`. To build without starting a server, run
@@ -60,6 +55,10 @@ and run `bun run preview`. To build without starting a server, run
 ```bash
 bun run deploy
 ```
+
+The deploy command sets `NEXT_PUBLIC_CONVEX_URL` to the selected production
+deployment before building and typechecking, overriding the development URL in
+`.env.local`.
 
 For Cloudflare Workers Builds, use `bun run deploy` as the deploy command. Build
 variables and runtime variables are separate in Workers Builds, so add
@@ -71,17 +70,34 @@ Runtime variables added in the Cloudflare dashboard are preserved on deploy by
 Wrangler independently and should continue to be managed with `wrangler secret`
 or the dashboard.
 
-## Sign-up notifications
+## Authentication
 
-WorkOS sends `user.created` events to the production Convex HTTP endpoint
-`https://scintillating-pika-461.convex.site/workos/webhook`, which verifies the
-`WorkOS-Signature` header and posts each new user to a private Discord channel.
-Set both values on the production Convex deployment:
+Sign-in runs entirely in Convex through [Convex Auth](https://labs.convex.dev/auth).
+People can sign in with an 8-digit email code or with a password, which they
+confirm with an emailed code. Tier lists stay keyed by the verified email
+address, so accounts created before Convex Auth keep their lists.
+
+Codes are sent from `noreply@mail.tierlistmaker.win`, a Resend domain. Every
+Convex deployment needs these variables, and deploys fail without them:
+
+- `JWT_PRIVATE_KEY` and `JWKS`: the key pair that signs session tokens.
+  `bunx @convex-dev/auth` generates and sets them; pass `--prod` for production.
+- `SITE_URL`: `http://localhost:3001` in development, `https://tierlistmaker.win`
+  in production.
+- `AUTH_RESEND_KEY`: a Resend API key with sending access to
+  `mail.tierlistmaker.win`.
 
 ```bash
-bunx convex env set WORKOS_WEBHOOK_SECRET --prod
-bunx convex env set SIGNUP_DISCORD_WEBHOOK_URL --prod
+bunx convex env set SITE_URL https://tierlistmaker.win --prod
+bunx convex env set AUTH_RESEND_KEY --prod
 ```
 
-The WorkOS secret comes from the webhook endpoint's settings in WorkOS. Deployments
-without both values reject deliveries.
+## Sign-up notifications
+
+When someone verifies their email for the first time, Convex posts their sign-up
+to a private Discord channel. Set the webhook URL on the production Convex
+deployment; deployments without it skip the notification:
+
+```bash
+bunx convex env set SIGNUP_DISCORD_WEBHOOK_URL --prod
+```

@@ -1,7 +1,8 @@
 "use client";
 
-import { useAuth } from "@workos/authkit-tanstack-react-start/client";
-import { Link } from "@tanstack/react-router";
+import { useAuthActions } from "@convex-dev/auth/react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useConvexAuth } from "convex/react";
 
 export function AuthNav({
   hideSignOut = false,
@@ -11,12 +12,14 @@ export function AuthNav({
 }: {
   hideSignOut?: boolean;
   hideSignedOutActions?: boolean;
-  signedOutPrimaryHref?: string;
+  signedOutPrimaryHref?: "/sign-up" | "/lists/new";
   signedOutPrimaryLabel?: string;
 }) {
-  const { user, loading } = useAuth();
+  const { isAuthenticated, isLoading } = useConvexAuth();
+  const { signOut } = useAuthActions();
+  const navigate = useNavigate();
 
-  if (loading) {
+  if (isLoading) {
     if (hideSignedOutActions) {
       return null;
     }
@@ -24,35 +27,30 @@ export function AuthNav({
     return <span className="button button-secondary">Loading...</span>;
   }
 
-  if (user) {
+  if (isAuthenticated) {
     if (hideSignOut) {
       return null;
     }
 
     return (
-      <a className="button button-secondary" href="/auth/signout">
+      <button
+        className="button button-secondary"
+        onClick={() => void signOut().then(() => navigate({ to: "/" }))}
+        type="button"
+      >
         Sign out
-      </a>
+      </button>
     );
   }
 
   return hideSignedOutActions ? null : (
     <>
-      <a className="button" href="/sign-in">
+      <Link className="button" to="/sign-in">
         Sign in
-      </a>
-      {signedOutPrimaryHref === "/lists/new" ? (
-        <Link
-          className="button primary"
-          to="/lists/new"
-        >
-          {signedOutPrimaryLabel}
-        </Link>
-      ) : (
-        <a className="button primary" href={signedOutPrimaryHref}>
-          {signedOutPrimaryLabel}
-        </a>
-      )}
+      </Link>
+      <Link className="button primary" to={signedOutPrimaryHref}>
+        {signedOutPrimaryLabel}
+      </Link>
     </>
   );
 }

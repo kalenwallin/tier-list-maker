@@ -1,8 +1,8 @@
 "use client";
 
-import { useAuth } from "@workos/authkit-tanstack-react-start/client";
 import {
   useConvex,
+  useConvexAuth,
   useMutation,
   usePaginatedQuery,
   useQuery,
@@ -76,7 +76,7 @@ export function useTierLists(): UseTierListsResult {
     loadMore: loadMoreRemoteLists,
   } = usePaginatedQuery(
     api.tierLists.listPaginated,
-    ownerEmail ? { ownerEmail } : "skip",
+    ownerEmail ? {} : "skip",
     { initialNumItems: DASHBOARD_PAGE_SIZE },
   );
   const createTierList = useMutation(api.tierLists.create);
@@ -109,7 +109,7 @@ export function useTierLists(): UseTierListsResult {
     }
 
     const list = createBlankTierList(title);
-    return await createTierList({ ...list, ownerEmail });
+    return await createTierList(list);
   }
 
   async function removeList(id: string) {
@@ -118,7 +118,7 @@ export function useTierLists(): UseTierListsResult {
       return;
     }
 
-    await removeTierList({ id: id as Id<"tierLists">, ownerEmail });
+    await removeTierList({ id: id as Id<"tierLists"> });
   }
 
   async function createShareLink(id: string) {
@@ -128,7 +128,7 @@ export function useTierLists(): UseTierListsResult {
 
     const shareId =
       lists?.find((list) => list.id === id)?.shareId ??
-      (await createRemoteShareLink({ id: id as Id<"tierLists">, ownerEmail }));
+      (await createRemoteShareLink({ id: id as Id<"tierLists"> }));
     return getShareUrl(shareId);
   }
 
@@ -143,10 +143,7 @@ export function useTierLists(): UseTierListsResult {
     while (true) {
       const result: PaginationResult<ConvexTierList> = await convex.query(
         api.tierLists.listPaginated,
-        {
-          ownerEmail,
-          paginationOpts: { cursor, numItems: EXPORT_PAGE_SIZE },
-        },
+        { paginationOpts: { cursor, numItems: EXPORT_PAGE_SIZE } },
       );
       allLists.push(...result.page);
 
@@ -164,7 +161,6 @@ export function useTierLists(): UseTierListsResult {
 
     const parsedLists = parseBackupContents(contents);
     return await importTierLists({
-      ownerEmail,
       lists: parsedLists.map(
         ({
           id: _id,
@@ -200,13 +196,11 @@ export function useTierList(id: string): UseTierListResult {
   const shouldQueryByLocalId = ownerEmail && isLocalTierListId(id);
   const remoteListById = useQuery(
     api.tierLists.get,
-    ownerEmail && !shouldQueryByLocalId
-      ? { id: id as Id<"tierLists">, ownerEmail }
-      : "skip",
+    ownerEmail && !shouldQueryByLocalId ? { id: id as Id<"tierLists"> } : "skip",
   ) as ConvexTierList | null | undefined;
   const remoteListByLocalId = useQuery(
     api.tierLists.getByLocalId,
-    shouldQueryByLocalId ? { localId: id, ownerEmail } : "skip",
+    shouldQueryByLocalId ? { localId: id } : "skip",
   ) as ConvexTierList | null | undefined;
   const updateTierList = useMutation(api.tierLists.update);
   const removeTierList = useMutation(api.tierLists.remove);
@@ -267,7 +261,6 @@ export function useTierList(id: string): UseTierListResult {
     const remoteId = remoteList?._id ?? id;
     await updateTierList({
       id: remoteId as Id<"tierLists">,
-      ownerEmail,
       title: updates.title.trim() || "Untitled tier list",
       description: updates.description.trim(),
       itemImageAspectRatio: updates.itemImageAspectRatio,
@@ -284,10 +277,7 @@ export function useTierList(id: string): UseTierListResult {
 
     const shareId =
       remoteList.shareId ??
-      (await createRemoteShareLink({
-        id: remoteList._id,
-        ownerEmail,
-      }));
+      (await createRemoteShareLink({ id: remoteList._id }));
     return getShareUrl(shareId);
   }, [createRemoteShareLink, ownerEmail, remoteList]);
 
@@ -298,10 +288,7 @@ export function useTierList(id: string): UseTierListResult {
     }
 
     const remoteId = remoteList?._id ?? id;
-    await removeTierList({
-      id: remoteId as Id<"tierLists">,
-      ownerEmail,
-    });
+    await removeTierList({ id: remoteId as Id<"tierLists"> });
   }, [id, ownerEmail, remoteList?._id, removeTierList]);
 
   return {
@@ -341,10 +328,12 @@ function fromConvexTierList(list: ConvexTierList): StoredTierList {
 }
 
 function useAuthState() {
-  const { user, loading } = useAuth();
+  const { isAuthenticated, isLoading } = useConvexAuth();
+  const viewer = useQuery(api.users.viewer, isAuthenticated ? {} : "skip");
+  const authLoading = isLoading || (isAuthenticated && viewer === undefined);
   return {
-    authLoading: loading,
-    ownerEmail: loading ? undefined : user?.email?.trim().toLowerCase(),
+    authLoading,
+    ownerEmail: authLoading ? undefined : viewer?.email,
   };
 }
 
@@ -381,7 +370,6 @@ function useLocalListsMigration(ownerEmail: string | undefined) {
       setIsMigratingLocalData(true);
       try {
         await syncLocalLists({
-          ownerEmail: ownerEmail!,
           lists: localLists.map(
             ({
               id,

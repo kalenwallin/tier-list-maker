@@ -5,7 +5,6 @@ import {
   Scripts,
   createRootRoute,
 } from "@tanstack/react-router";
-import { AuthKitProvider } from "@workos/authkit-tanstack-react-start/client";
 import { Suspense, type ReactNode } from "react";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
 import "@/app/globals.css";
@@ -42,19 +41,17 @@ export const Route = createRootRoute({
 
 function RootComponent() {
   return (
-    <AuthKitProvider>
-      <Suspense
-        fallback={
-          <main className="page-shell">
-            <section className="panel panel-pad">Loading tier lists</section>
-          </main>
-        }
-      >
-        <ConvexClientProvider>
-          <Outlet />
-        </ConvexClientProvider>
-      </Suspense>
-    </AuthKitProvider>
+    <Suspense
+      fallback={
+        <main className="page-shell">
+          <section className="panel panel-pad">Loading tier lists</section>
+        </main>
+      }
+    >
+      <ConvexClientProvider>
+        <Outlet />
+      </ConvexClientProvider>
+    </Suspense>
   );
 }
 

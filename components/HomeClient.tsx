@@ -1,7 +1,7 @@
 "use client";
 
-import { useAuth } from "@workos/authkit-tanstack-react-start/client";
 import { useNavigate } from "@tanstack/react-router";
+import { useConvexAuth } from "convex/react";
 import { Cloud, Download, FilePlus2, HardDrive, Loader2, Share2 } from "lucide-react";
 import { useState } from "react";
 import { useTierLists } from "@/lib/use-tier-lists";
@@ -20,13 +20,13 @@ const SAMPLE_ITEMS: TierItem[] = [
 ];
 
 export function HomeClient() {
-  const { user, loading } = useAuth();
+  const { isAuthenticated, isLoading } = useConvexAuth();
   const { createList } = useTierLists();
   const navigate = useNavigate();
   const [isCreating, setIsCreating] = useState(false);
 
   async function getStarted() {
-    if (user) {
+    if (isAuthenticated) {
       void navigate({
         to: "/dashboard",
       });
@@ -57,7 +57,7 @@ export function HomeClient() {
         <div className="nav-actions" style={{ justifyContent: "flex-start" }}>
           <button
             className="button primary"
-            disabled={loading || isCreating}
+            disabled={isLoading || isCreating}
             onClick={() => void getStarted()}
             type="button"
           >

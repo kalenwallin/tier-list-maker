@@ -1,8 +1,9 @@
 import { mutation, query } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
-import { paginationOptsValidator } from "convex/server";
+import type { Doc, Id } from "./_generated/dataModel";
+import { paginationOptsValidator, type PaginationResult } from "convex/server";
 import { v } from "convex/values";
+import { getViewerEmail, requireViewerEmail } from "./users";
 
 const tier = v.object({
   id: v.string(),
@@ -24,55 +25,41 @@ const itemImageAspectRatio = v.union(
   v.literal("wide"),
 );
 
-const tierListFields = {
-  ownerEmail: v.optional(v.string()),
-  localId: v.optional(v.string()),
-  shareId: v.optional(v.string()),
+const tierListContent = {
   title: v.string(),
   description: v.string(),
   itemImageAspectRatio: v.optional(itemImageAspectRatio),
   tiers: v.array(tier),
   items: v.array(tierItem),
-  createdAt: v.number(),
-  updatedAt: v.number(),
 };
 
-// Keep this bounded endpoint for clients deployed before dashboard pagination.
-// Current clients use listPaginated below.
-export const list = query({
-  args: { ownerEmail: v.string() },
-  handler: async (ctx, { ownerEmail }) => {
-    return await ctx.db
-      .query("tierLists")
-      .withIndex("by_owner_updatedAt", (q) =>
-        q.eq("ownerEmail", normalizeEmail(ownerEmail)),
-      )
-      .order("desc")
-      .take(100);
-  },
-});
-
 export const listPaginated = query({
-  args: {
-    ownerEmail: v.string(),
-    paginationOpts: paginationOptsValidator,
-  },
-  handler: async (ctx, { ownerEmail, paginationOpts }) => {
+  args: { paginationOpts: paginationOptsValidator },
+  handler: async (ctx, { paginationOpts }) => {
+    const ownerEmail = await getViewerEmail(ctx);
+    if (ownerEmail === null) {
+      const signedOut: PaginationResult<Doc<"tierLists">> = {
+        page: [],
+        isDone: true,
+        continueCursor: "",
+      };
+      return signedOut;
+    }
+
     return await ctx.db
       .query("tierLists")
-      .withIndex("by_owner_updatedAt", (q) =>
-        q.eq("ownerEmail", normalizeEmail(ownerEmail)),
-      )
+      .withIndex("by_owner_updatedAt", (q) => q.eq("ownerEmail", ownerEmail))
       .order("desc")
       .paginate(paginationOpts);
   },
 });
 
 export const get = query({
-  args: { id: v.id("tierLists"), ownerEmail: v.string() },
-  handler: async (ctx, { id, ownerEmail }) => {
+  args: { id: v.id("tierLists") },
+  handler: async (ctx, { id }) => {
+    const ownerEmail = await getViewerEmail(ctx);
     const list = await ctx.db.get(id);
-    if (!list || list.ownerEmail !== normalizeEmail(ownerEmail)) {
+    if (!list || ownerEmail === null || list.ownerEmail !== ownerEmail) {
       return null;
     }
 
@@ -81,12 +68,15 @@ export const get = query({
 });
 
 export const getByLocalId = query({
-  args: { localId: v.string(), ownerEmail: v.string() },
-  handler: async (ctx, { localId, ownerEmail }) => {
+  args: { localId: v.string() },
+  handler: async (ctx, { localId }) => {
+    const ownerEmail = await getViewerEmail(ctx);
+    if (ownerEmail === null) return null;
+
     return await ctx.db
       .query("tierLists")
       .withIndex("by_owner_localId", (q) =>
-        q.eq("ownerEmail", normalizeEmail(ownerEmail)).eq("localId", localId),
+        q.eq("ownerEmail", ownerEmail).eq("localId", localId),
       )
       .first();
   },
@@ -97,36 +87,39 @@ export const getShared = query({
   handler: async (ctx, { shareId }) => {
     if (!shareId.trim()) return null;
 
-    return await ctx.db
+    const list = await ctx.db
       .query("tierLists")
       .withIndex("by_shareId", (q) => q.eq("shareId", shareId.trim()))
       .first();
+    if (!list) return null;
+
+    // Anyone with the link can read the list, so tell them whether they own
+    // it rather than who does.
+    const { ownerEmail, ...sharedList } = list;
+    const viewerEmail = await getViewerEmail(ctx);
+    return {
+      ...sharedList,
+      isOwner: viewerEmail !== null && viewerEmail === ownerEmail,
+    };
   },
 });
 
 export const create = mutation({
   args: {
-    ownerEmail: v.string(),
-    title: v.string(),
-    description: v.string(),
-    itemImageAspectRatio: v.optional(itemImageAspectRatio),
-    tiers: v.array(tier),
-    items: v.array(tierItem),
+    ...tierListContent,
     createdAt: v.number(),
     updatedAt: v.number(),
   },
   handler: async (ctx, list) => {
-    return await ctx.db.insert("tierLists", {
-      ...list,
-      ownerEmail: normalizeEmail(list.ownerEmail),
-    });
+    const ownerEmail = await requireViewerEmail(ctx);
+    return await ctx.db.insert("tierLists", { ...list, ownerEmail });
   },
 });
 
 export const createShareLink = mutation({
-  args: { id: v.id("tierLists"), ownerEmail: v.string() },
-  handler: async (ctx, { id, ownerEmail }) => {
-    const list = await assertOwner(ctx, id, ownerEmail);
+  args: { id: v.id("tierLists") },
+  handler: async (ctx, { id }) => {
+    const list = await assertOwner(ctx, id);
     if (list.shareId) return list.shareId;
 
     const shareId = crypto.randomUUID();
@@ -141,37 +134,40 @@ export const createShareLink = mutation({
 export const update = mutation({
   args: {
     id: v.id("tierLists"),
-    ownerEmail: v.string(),
-    title: v.string(),
-    description: v.string(),
-    itemImageAspectRatio: v.optional(itemImageAspectRatio),
-    tiers: v.array(tier),
-    items: v.array(tierItem),
+    ...tierListContent,
     updatedAt: v.number(),
   },
-  handler: async (ctx, { id, ownerEmail, ...updates }) => {
-    await assertOwner(ctx, id, ownerEmail);
+  handler: async (ctx, { id, ...updates }) => {
+    await assertOwner(ctx, id);
     await ctx.db.patch(id, updates);
   },
 });
 
 export const remove = mutation({
-  args: { id: v.id("tierLists"), ownerEmail: v.string() },
-  handler: async (ctx, { id, ownerEmail }) => {
-    await assertOwner(ctx, id, ownerEmail);
+  args: { id: v.id("tierLists") },
+  handler: async (ctx, { id }) => {
+    await assertOwner(ctx, id);
     await ctx.db.delete(id);
   },
 });
 
 export const importMany = mutation({
-  args: { ownerEmail: v.string(), lists: v.array(v.object(tierListFields)) },
-  handler: async (ctx, { ownerEmail, lists }) => {
-    const normalizedOwnerEmail = normalizeEmail(ownerEmail);
+  args: {
+    lists: v.array(
+      v.object({
+        ...tierListContent,
+        createdAt: v.number(),
+        updatedAt: v.number(),
+      }),
+    ),
+  },
+  handler: async (ctx, { lists }) => {
+    const ownerEmail = await requireViewerEmail(ctx);
 
     for (const list of lists) {
       await ctx.db.insert("tierLists", {
         ...list,
-        ownerEmail: normalizedOwnerEmail,
+        ownerEmail,
         updatedAt: Date.now(),
       });
     }
@@ -182,37 +178,30 @@ export const importMany = mutation({
 
 export const syncLocalLists = mutation({
   args: {
-    ownerEmail: v.string(),
     lists: v.array(
       v.object({
         localId: v.string(),
-        title: v.string(),
-        description: v.string(),
-        itemImageAspectRatio: v.optional(itemImageAspectRatio),
-        tiers: v.array(tier),
-        items: v.array(tierItem),
+        ...tierListContent,
         createdAt: v.number(),
         updatedAt: v.number(),
       }),
     ),
   },
-  handler: async (ctx, { ownerEmail, lists }) => {
-    const normalizedOwnerEmail = normalizeEmail(ownerEmail);
+  handler: async (ctx, { lists }) => {
+    const ownerEmail = await requireViewerEmail(ctx);
     let syncedCount = 0;
 
     for (const list of lists) {
       const existing = await ctx.db
         .query("tierLists")
         .withIndex("by_owner_localId", (q) =>
-          q
-            .eq("ownerEmail", normalizedOwnerEmail)
-            .eq("localId", list.localId),
+          q.eq("ownerEmail", ownerEmail).eq("localId", list.localId),
         )
         .first();
 
       const updates = {
         localId: list.localId,
-        ownerEmail: normalizedOwnerEmail,
+        ownerEmail,
         title: list.title.trim() || "Untitled tier list",
         description: list.description.trim(),
         ...(list.itemImageAspectRatio
@@ -236,38 +225,10 @@ export const syncLocalLists = mutation({
   },
 });
 
-export const claimLegacyLists = mutation({
-  args: { ownerEmail: v.string() },
-  handler: async (ctx, { ownerEmail }) => {
-    const normalizedOwnerEmail = normalizeEmail(ownerEmail);
-    const lists = await ctx.db.query("tierLists").collect();
-    let migratedCount = 0;
-
-    for (const list of lists) {
-      if (list.ownerEmail !== undefined) continue;
-
-      await ctx.db.patch(list._id, {
-        ownerEmail: normalizedOwnerEmail,
-        updatedAt: Date.now(),
-      });
-      migratedCount += 1;
-    }
-
-    return migratedCount;
-  },
-});
-
-function normalizeEmail(email: string) {
-  return email.trim().toLowerCase();
-}
-
-async function assertOwner(
-  ctx: MutationCtx,
-  id: Id<"tierLists">,
-  ownerEmail: string,
-) {
+async function assertOwner(ctx: MutationCtx, id: Id<"tierLists">) {
+  const ownerEmail = await requireViewerEmail(ctx);
   const list = await ctx.db.get(id);
-  if (!list || list.ownerEmail !== normalizeEmail(ownerEmail)) {
+  if (!list || list.ownerEmail !== ownerEmail) {
     throw new Error("Tier list not found.");
   }
   return list;

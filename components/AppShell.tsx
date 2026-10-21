@@ -18,7 +18,7 @@ export function AppShell({
   hideSignOut?: boolean;
   hideSignedOutActions?: boolean;
   dashboardTransitionType?: "nav-forward" | "nav-back";
-  signedOutPrimaryHref?: string;
+  signedOutPrimaryHref?: "/sign-up" | "/lists/new";
   signedOutPrimaryLabel?: string;
 }) {
   const isLandingPage = useLocation({

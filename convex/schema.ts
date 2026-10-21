@@ -1,3 +1,4 @@
+import { authTables } from "@convex-dev/auth/server";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
@@ -15,6 +16,7 @@ const tierItem = v.object({
 });
 
 export default defineSchema({
+  ...authTables,
   tierLists: defineTable({
     ownerEmail: v.optional(v.string()),
     localId: v.optional(v.string()),
