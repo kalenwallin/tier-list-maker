@@ -58,7 +58,8 @@ bun run deploy
 
 The deploy command sets `NEXT_PUBLIC_CONVEX_URL` to the selected production
 deployment before building and typechecking, overriding the development URL in
-`.env.local`.
+`.env.local`. It also sets both public app URLs to `https://tierlistmaker.win` so
+shared links use the production domain.
 
 For Cloudflare Workers Builds, use `bun run deploy` as the deploy command. Build
 variables and runtime variables are separate in Workers Builds, so add

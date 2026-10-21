@@ -8,7 +8,7 @@
     "build": "vite build && tsc --noEmit",
     "build:cloudflare": "vite build && tsc --noEmit",
     "preview": "vite preview --port 3001",
-    "deploy": "convex deploy --cmd-url-env-var-name NEXT_PUBLIC_CONVEX_URL --cmd 'bun run build' && wrangler deploy",
+    "deploy": "convex deploy --cmd-url-env-var-name NEXT_PUBLIC_CONVEX_URL --cmd 'NEXT_PUBLIC_APP_URL=https://tierlistmaker.win NEXT_PUBLIC_SITE_URL=https://tierlistmaker.win bun run build' && wrangler deploy",
     "cf-typegen": "wrangler types --env-file .dev.vars.example --include-runtime=false --env-interface CloudflareEnv cloudflare-env.d.ts",
     "start": "vite preview --port 3001",
     "lint": "biome lint .",
