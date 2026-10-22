@@ -37,6 +37,7 @@ import {
 } from "@/lib/tier-list";
 import { useMobilePerformanceMode } from "@/lib/use-mobile-performance-mode";
 import type { UseTierListResult } from "@/lib/use-tier-lists";
+import { useViewTransitionsEnabled } from "@/lib/view-transitions";
 import { TierListPreview } from "./TierListPreview";
 
 export function TierListEditor({
@@ -63,7 +64,8 @@ export function TierListEditor({
     createShareLink,
   } = tierList;
   const list = queriedList === undefined ? initialList : queriedList;
-  const mobilePerformanceMode = useMobilePerformanceMode();
+  const viewTransitionsEnabled = useViewTransitionsEnabled();
+  const skipViewTransitions = useMobilePerformanceMode() || !viewTransitionsEnabled;
   const navigate = useNavigate();
   const exportRef = useRef<HTMLDivElement>(null);
   const removeDialogRef = useRef<HTMLDialogElement>(null);
@@ -92,7 +94,7 @@ export function TierListEditor({
   const [keepEmptyTrayDuringModeChange, setKeepEmptyTrayDuringModeChange] =
     useState(false);
   const [routeMorphName, setRouteMorphName] = useState<string | undefined>(
-    !mobilePerformanceMode && !compactDashboardTransition && (previewMode || morphOnMount)
+    !skipViewTransitions && !compactDashboardTransition && (previewMode || morphOnMount)
       ? `tier-list-${id}`
       : undefined,
   );
@@ -238,12 +240,12 @@ export function TierListEditor({
     try {
       await removeList();
       removeDialogRef.current?.close();
-      if (!mobilePerformanceMode && !isPreviewMode) {
+      if (!skipViewTransitions && !isPreviewMode) {
         flushSync(() => setIsNavigatingToDashboard(true));
       }
       void navigate({
         to: "/dashboard",
-        viewTransition: mobilePerformanceMode
+        viewTransition: skipViewTransitions
           ? false
           : {
               types: compactDashboardTransition
@@ -263,7 +265,7 @@ export function TierListEditor({
   }
 
   function changeMode(nextPreviewMode: boolean) {
-    if (mobilePerformanceMode) {
+    if (skipViewTransitions) {
       setRouteMorphName(undefined);
       setKeepEmptyTrayDuringModeChange(false);
       setIsPreviewMode(nextPreviewMode);
@@ -354,7 +356,7 @@ export function TierListEditor({
       });
     }
 
-    if (!mobilePerformanceMode) {
+    if (!skipViewTransitions) {
       flushSync(() => {
         setRouteMorphName(compactDashboardTransition ? undefined : `tier-list-${id}`);
         if (!isPreviewMode) setIsNavigatingToDashboard(true);
@@ -363,7 +365,7 @@ export function TierListEditor({
 
     void navigate({
       to: "/dashboard",
-      viewTransition: mobilePerformanceMode
+      viewTransition: skipViewTransitions
         ? false
         : {
             types: compactDashboardTransition
@@ -384,7 +386,7 @@ export function TierListEditor({
   }
 
   function updateWithOptionalTransition(update: () => void) {
-    if (mobilePerformanceMode) {
+    if (skipViewTransitions) {
       update();
       return;
     }
@@ -472,7 +474,7 @@ export function TierListEditor({
         <Link
           className="button"
           to="/dashboard"
-          viewTransition={mobilePerformanceMode ? false : { types: ["nav-back"] }}
+          viewTransition={skipViewTransitions ? false : { types: ["nav-back"] }}
         >
           Back to dashboard
         </Link>

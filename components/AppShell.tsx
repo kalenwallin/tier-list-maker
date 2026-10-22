@@ -3,6 +3,7 @@ import { Link, useLocation } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { AuthNav } from "./AuthNav";
 import { ThemeToggle } from "./ThemeToggle";
+import { ViewTransitionsToggle } from "./ViewTransitionsToggle";
 
 export function AppShell({
   children,
@@ -36,6 +37,7 @@ export function AppShell({
         </Link>
         <nav className="nav-actions">
           <ThemeToggle />
+          <ViewTransitionsToggle />
           <span className="topbar-action-slot" id="topbar-leading-action-slot" />
           {hideDashboard ? null : (
             <Link

@@ -1,12 +1,13 @@
 import {
+  createRootRoute,
   HeadContent,
   Outlet,
   ScriptOnce,
   Scripts,
-  createRootRoute,
 } from "@tanstack/react-router";
-import { Suspense, type ReactNode } from "react";
+import { type ReactNode, Suspense, useLayoutEffect } from "react";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
+import { viewTransitionsScript } from "@/lib/view-transitions";
 import "@/app/globals.css";
 
 const themeScript = `
@@ -56,10 +57,27 @@ function RootComponent() {
 }
 
 function RootDocument({ children }: { children: ReactNode }) {
+  useLayoutEffect(() => {
+    // Strict Mode remounts <html> in development, clearing the startup script's
+    // attributes. Restore the saved theme after React reacquires the document.
+    try {
+      const savedTheme = localStorage.getItem("tier-list-maker-theme");
+      const theme =
+        savedTheme === "light" || savedTheme === "dark"
+          ? savedTheme
+          : window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light";
+      document.documentElement.dataset.theme = theme;
+      document.documentElement.style.colorScheme = theme;
+    } catch {}
+  }, []);
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
         <ScriptOnce>{themeScript}</ScriptOnce>
+        <ScriptOnce>{viewTransitionsScript}</ScriptOnce>
         <HeadContent />
       </head>
       <body>

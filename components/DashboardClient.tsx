@@ -41,6 +41,7 @@ import {
 } from "@/lib/image-export";
 import { useMobilePerformanceMode } from "@/lib/use-mobile-performance-mode";
 import { useTierLists } from "@/lib/use-tier-lists";
+import { useViewTransitionsEnabled } from "@/lib/view-transitions";
 import { TierListPreview } from "./TierListPreview";
 
 const DASHBOARD_PREFERENCES_KEY = "tier-list-maker-dashboard-preferences-v1";
@@ -169,6 +170,8 @@ export function DashboardClient() {
     importData,
   } = useTierLists();
   const mobilePerformanceMode = useMobilePerformanceMode();
+  const viewTransitionsEnabled = useViewTransitionsEnabled();
+  const skipViewTransitions = mobilePerformanceMode || !viewTransitionsEnabled;
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageExportRef = useRef<HTMLDivElement>(null);
@@ -469,7 +472,7 @@ export function DashboardClient() {
   }
 
   function toggleCompact() {
-    if (mobilePerformanceMode) {
+    if (skipViewTransitions) {
       setIsCompact((current) => !current);
       return;
     }
@@ -483,7 +486,7 @@ export function DashboardClient() {
   function changeLayout(nextLayout: DashboardLayout) {
     if (layout === nextLayout) return;
 
-    if (mobilePerformanceMode) {
+    if (skipViewTransitions) {
       setLayout(nextLayout);
       return;
     }
@@ -912,7 +915,7 @@ export function DashboardClient() {
                       to="/lists/$id"
                       onClick={() => rememberDashboardState(list.id)}
                       viewTransition={
-                        mobilePerformanceMode
+                        skipViewTransitions
                           ? false
                           : {
                               types: isCompact
@@ -952,7 +955,7 @@ export function DashboardClient() {
                       className="dashboard-tier-preview list-card-summary"
                       style={{
                         viewTransitionClass:
-                          isCompact || mobilePerformanceMode
+                          isCompact || skipViewTransitions
                             ? undefined
                             : [
                                 "tier-list-morph",
@@ -964,7 +967,7 @@ export function DashboardClient() {
                                 .filter(Boolean)
                                 .join(" "),
                         viewTransitionName:
-                          isCompact || mobilePerformanceMode
+                          isCompact || skipViewTransitions
                             ? undefined
                             : `tier-list-${list.id}`,
                       }}
@@ -1028,7 +1031,7 @@ export function DashboardClient() {
                         to="/lists/$id"
                         onClick={() => rememberDashboardState(list.id)}
                         viewTransition={
-                          mobilePerformanceMode
+                          skipViewTransitions
                             ? false
                             : {
                                 types: isCompact
