@@ -1,5 +1,5 @@
 import { mutation, query } from "./_generated/server";
-import type { MutationCtx } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { paginationOptsValidator, type PaginationResult } from "convex/server";
 import { v } from "convex/values";
@@ -91,16 +91,21 @@ export const getShared = query({
       .query("tierLists")
       .withIndex("by_shareId", (q) => q.eq("shareId", shareId.trim()))
       .first();
-    if (!list) return null;
+    return list ? await toSharedList(ctx, list) : null;
+  },
+});
 
-    // Anyone with the link can read the list, so tell them whether they own
-    // it rather than who does.
-    const { ownerEmail, ...sharedList } = list;
-    const viewerEmail = await getViewerEmail(ctx);
-    return {
-      ...sharedList,
-      isOwner: viewerEmail !== null && viewerEmail === ownerEmail,
-    };
+// A list's editor URL doubles as a share link, so anyone who has it can read
+// the list.
+export const getPublic = query({
+  args: { id: v.string() },
+  handler: async (ctx, { id }) => {
+    // The id comes straight from the URL and may be a browser-only list id.
+    const listId = ctx.db.normalizeId("tierLists", id);
+    if (listId === null) return null;
+
+    const list = await ctx.db.get(listId);
+    return list ? await toSharedList(ctx, list) : null;
   },
 });
 
@@ -224,6 +229,17 @@ export const syncLocalLists = mutation({
     return syncedCount;
   },
 });
+
+// Anyone with the link can read the list, so tell them whether they own it
+// rather than who does.
+async function toSharedList(ctx: QueryCtx, list: Doc<"tierLists">) {
+  const { ownerEmail, ...sharedList } = list;
+  const viewerEmail = await getViewerEmail(ctx);
+  return {
+    ...sharedList,
+    isOwner: viewerEmail !== null && viewerEmail === ownerEmail,
+  };
+}
 
 async function assertOwner(ctx: MutationCtx, id: Id<"tierLists">) {
   const ownerEmail = await requireViewerEmail(ctx);

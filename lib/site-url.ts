@@ -41,3 +41,7 @@ export function getSiteUrl() {
 export function getShareUrl(shareId: string) {
   return `${getSiteUrl()}/share/${encodeURIComponent(shareId)}`;
 }
+
+export function getListUrl(id: string) {
+  return `${getSiteUrl()}/lists/${encodeURIComponent(id)}`;
+}

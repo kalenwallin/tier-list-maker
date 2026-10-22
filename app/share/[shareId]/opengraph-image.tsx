@@ -1,7 +1,7 @@
 import { ImageResponse } from "@cloudflare/pages-plugin-vercel-og/api";
 import {
   getShareDescription,
-  getSharedTierList,
+  type SharedTierList,
   truncateText,
 } from "@/lib/share-metadata";
 import { getSiteUrl } from "@/lib/site-url";
@@ -14,8 +14,7 @@ export const size = {
 
 export const contentType = "image/png";
 
-export async function renderShareOpenGraphImage(shareId: string) {
-  const list = await getSharedTierList(shareId);
+export function renderTierListOpenGraphImage(list: SharedTierList | null) {
   const title = truncateText(list?.title || "Shared tier list", 28);
   const description = truncateText(getShareDescription(list), 78);
   const tiers = list?.tiers.length ? list.tiers : DEFAULT_TIERS;

@@ -50,7 +50,7 @@ type UseTierListsResult = {
   importData: (contents: string) => Promise<number>;
 };
 
-type UseTierListResult = {
+export type UseTierListResult = {
   list: StoredTierList | null | undefined;
   ownerEmail: string | undefined;
   syncMode: SyncMode;

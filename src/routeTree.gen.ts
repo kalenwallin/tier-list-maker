@@ -16,6 +16,7 @@ import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as ListsIdRouteImport } from './routes/lists/$id'
 import { Route as ListsNewRouteImport } from './routes/lists/new'
 import { Route as ShareShareIdRouteImport } from './routes/share/$shareId'
+import { Route as ListsIdOpengraphImageRouteImport } from './routes/lists/$id.opengraph-image'
 import { Route as ShareShareIdOpengraphImageRouteImport } from './routes/share/$shareId.opengraph-image'
 
 const IndexRoute = IndexRouteImport.update({
@@ -53,6 +54,11 @@ const ShareShareIdRoute = ShareShareIdRouteImport.update({
   path: '/share/$shareId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ListsIdOpengraphImageRoute = ListsIdOpengraphImageRouteImport.update({
+  id: '/opengraph-image',
+  path: '/opengraph-image',
+  getParentRoute: () => ListsIdRoute,
+} as any)
 const ShareShareIdOpengraphImageRoute =
   ShareShareIdOpengraphImageRouteImport.update({
     id: '/opengraph-image',
@@ -65,9 +71,10 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
-  '/lists/$id': typeof ListsIdRoute
+  '/lists/$id': typeof ListsIdRouteWithChildren
   '/lists/new': typeof ListsNewRoute
   '/share/$shareId': typeof ShareShareIdRouteWithChildren
+  '/lists/$id/opengraph-image': typeof ListsIdOpengraphImageRoute
   '/share/$shareId/opengraph-image': typeof ShareShareIdOpengraphImageRoute
 }
 export interface FileRoutesByTo {
@@ -75,9 +82,10 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
-  '/lists/$id': typeof ListsIdRoute
+  '/lists/$id': typeof ListsIdRouteWithChildren
   '/lists/new': typeof ListsNewRoute
   '/share/$shareId': typeof ShareShareIdRouteWithChildren
+  '/lists/$id/opengraph-image': typeof ListsIdOpengraphImageRoute
   '/share/$shareId/opengraph-image': typeof ShareShareIdOpengraphImageRoute
 }
 export interface FileRoutesById {
@@ -86,9 +94,10 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
-  '/lists/$id': typeof ListsIdRoute
+  '/lists/$id': typeof ListsIdRouteWithChildren
   '/lists/new': typeof ListsNewRoute
   '/share/$shareId': typeof ShareShareIdRouteWithChildren
+  '/lists/$id/opengraph-image': typeof ListsIdOpengraphImageRoute
   '/share/$shareId/opengraph-image': typeof ShareShareIdOpengraphImageRoute
 }
 export interface FileRouteTypes {
@@ -101,6 +110,7 @@ export interface FileRouteTypes {
     | '/lists/$id'
     | '/lists/new'
     | '/share/$shareId'
+    | '/lists/$id/opengraph-image'
     | '/share/$shareId/opengraph-image'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -111,6 +121,7 @@ export interface FileRouteTypes {
     | '/lists/$id'
     | '/lists/new'
     | '/share/$shareId'
+    | '/lists/$id/opengraph-image'
     | '/share/$shareId/opengraph-image'
   id:
     | '__root__'
@@ -121,6 +132,7 @@ export interface FileRouteTypes {
     | '/lists/$id'
     | '/lists/new'
     | '/share/$shareId'
+    | '/lists/$id/opengraph-image'
     | '/share/$shareId/opengraph-image'
   fileRoutesById: FileRoutesById
 }
@@ -129,7 +141,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
-  ListsIdRoute: typeof ListsIdRoute
+  ListsIdRoute: typeof ListsIdRouteWithChildren
   ListsNewRoute: typeof ListsNewRoute
   ShareShareIdRoute: typeof ShareShareIdRouteWithChildren
 }
@@ -185,6 +197,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShareShareIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lists/$id/opengraph-image': {
+      id: '/lists/$id/opengraph-image'
+      path: '/opengraph-image'
+      fullPath: '/lists/$id/opengraph-image'
+      preLoaderRoute: typeof ListsIdOpengraphImageRouteImport
+      parentRoute: typeof ListsIdRoute
+    }
     '/share/$shareId/opengraph-image': {
       id: '/share/$shareId/opengraph-image'
       path: '/opengraph-image'
@@ -194,6 +213,17 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface ListsIdRouteChildren {
+  ListsIdOpengraphImageRoute: typeof ListsIdOpengraphImageRoute
+}
+
+const ListsIdRouteChildren: ListsIdRouteChildren = {
+  ListsIdOpengraphImageRoute: ListsIdOpengraphImageRoute,
+}
+
+const ListsIdRouteWithChildren =
+  ListsIdRoute._addFileChildren(ListsIdRouteChildren)
 
 interface ShareShareIdRouteChildren {
   ShareShareIdOpengraphImageRoute: typeof ShareShareIdOpengraphImageRoute
@@ -212,7 +242,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
-  ListsIdRoute: ListsIdRoute,
+  ListsIdRoute: ListsIdRouteWithChildren,
   ListsNewRoute: ListsNewRoute,
   ShareShareIdRoute: ShareShareIdRouteWithChildren,
 }

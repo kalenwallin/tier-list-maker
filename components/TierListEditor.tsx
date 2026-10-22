@@ -36,7 +36,7 @@ import {
   TierItem,
 } from "@/lib/tier-list";
 import { useMobilePerformanceMode } from "@/lib/use-mobile-performance-mode";
-import { useTierList } from "@/lib/use-tier-lists";
+import type { UseTierListResult } from "@/lib/use-tier-lists";
 import { TierListPreview } from "./TierListPreview";
 
 export function TierListEditor({
@@ -45,12 +45,14 @@ export function TierListEditor({
   initialList,
   morphOnMount = false,
   previewMode = false,
+  tierList,
 }: {
   compactDashboardTransition?: boolean;
   id: string;
   initialList?: StoredTierList;
   morphOnMount?: boolean;
   previewMode?: boolean;
+  tierList: UseTierListResult;
 }) {
   const {
     list: queriedList,
@@ -59,7 +61,7 @@ export function TierListEditor({
     saveList,
     removeList,
     createShareLink,
-  } = useTierList(id);
+  } = tierList;
   const list = queriedList === undefined ? initialList : queriedList;
   const mobilePerformanceMode = useMobilePerformanceMode();
   const navigate = useNavigate();
