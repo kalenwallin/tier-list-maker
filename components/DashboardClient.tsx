@@ -19,6 +19,7 @@ import {
 import {
   addTransitionType,
   ChangeEvent,
+  type ComponentProps,
   startTransition,
   useEffect,
   useLayoutEffect,
@@ -64,6 +65,20 @@ const DEFAULT_DASHBOARD_SKELETON_CARDS = [
   },
 ];
 const DASHBOARD_SKELETON_ACTIONS = ["edit", "delete", "share", "download", "copy"];
+
+function DashboardGrid(props: ComponentProps<"section">) {
+  return (
+    <ViewTransition
+      default="none"
+      update={{
+        "dashboard-layout": "dashboard-layout",
+        default: "none",
+      }}
+    >
+      <section {...props} />
+    </ViewTransition>
+  );
+}
 
 function DashboardSkeleton({
   currentIsCompact,
@@ -228,9 +243,7 @@ export function DashboardClient() {
       (canLoadMore || isLoadingMore),
   );
   const dashboardLists =
-    lists === undefined || isRestoringPaginatedSnapshot
-      ? initialSnapshot?.lists
-      : lists;
+    lists === undefined || isRestoringPaginatedSnapshot ? initialSnapshot?.lists : lists;
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const isSearchActive = normalizedSearchQuery.length > 0;
   const filteredDashboardLists = (dashboardLists ?? []).filter(
@@ -241,9 +254,7 @@ export function DashboardClient() {
   const isSearchingMore = Boolean(
     isSearchActive && syncMode === "cloud" && (canLoadMore || isLoadingMore),
   );
-  const pendingRemovalList = dashboardLists?.find(
-    (list) => list.id === pendingRemovalId,
-  );
+  const pendingRemovalList = dashboardLists?.find((list) => list.id === pendingRemovalId);
   const dashboardListCount = filteredDashboardLists.length;
   const effectiveLayout = isSingleColumnLayout ? "list" : layout;
 
@@ -491,7 +502,10 @@ export function DashboardClient() {
       return;
     }
 
-    startTransition(() => setLayout(nextLayout));
+    startTransition(() => {
+      addTransitionType("dashboard-layout");
+      setLayout(nextLayout);
+    });
   }
 
   async function create() {
@@ -657,7 +671,9 @@ export function DashboardClient() {
       }
     } catch (error) {
       if (activityGeneration === activityGenerationRef.current) {
-        setMessage(error instanceof Error ? error.message : "Could not import that file.");
+        setMessage(
+          error instanceof Error ? error.message : "Could not import that file.",
+        );
       }
     } finally {
       if (activityGeneration === activityGenerationRef.current) {
@@ -726,7 +742,7 @@ export function DashboardClient() {
             <div>
               <h2 id="remove-dialog-title">Remove tier list?</h2>
               <p id="remove-dialog-description">
-                <strong>{pendingRemovalList?.title}</strong>{" "}will be permanently removed.
+                <strong>{pendingRemovalList?.title}</strong> will be permanently removed.
                 This can&apos;t be undone.
               </p>
             </div>
@@ -876,7 +892,7 @@ export function DashboardClient() {
               </p>
             </section>
           ) : null}
-          <section
+          <DashboardGrid
             className={[
               "grid",
               effectiveLayout === "list" ? "is-list-layout" : "is-card-layout",
@@ -898,7 +914,10 @@ export function DashboardClient() {
                   enter="scale-in"
                   exit="scale-out"
                   key={list.id}
-                  update="auto"
+                  update={{
+                    "dashboard-layout": "none",
+                    default: "auto",
+                  }}
                 >
                   <article className="list-card">
                     <Link
@@ -962,6 +981,10 @@ export function DashboardClient() {
                                 "dashboard-preview-expand",
                                 initialSnapshot?.activeMorphListId === list.id
                                   ? "tier-list-morph-return"
+                                  : undefined,
+                                initialSnapshot?.activeMorphListId === list.id &&
+                                effectiveLayout === "list"
+                                  ? "tier-list-morph-return-list"
                                   : undefined,
                               ]
                                 .filter(Boolean)
@@ -1134,7 +1157,7 @@ export function DashboardClient() {
                 </span>
               </button>
             )}
-          </section>
+          </DashboardGrid>
           {syncMode === "cloud" ? (
             <div
               aria-live="polite"

@@ -25,6 +25,14 @@ export function getRouter() {
 
         if (toIndex < fromIndex || isForwardHistoryNavigation) return false;
 
+        if (
+          [fromLocation.pathname, toLocation.pathname].some(
+            (pathname) => pathname === "/sign-in" || pathname === "/sign-up",
+          )
+        ) {
+          return ["auth-navigation"];
+        }
+
         if (fromLocation.pathname === "/" || toLocation.pathname === "/") {
           return ["fade-only"];
         }

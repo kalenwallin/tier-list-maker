@@ -371,8 +371,8 @@ export function TierListEditor({
             types: compactDashboardTransition
               ? ["compact-tier-list"]
               : isPreviewMode
-                ? ["nav-back"]
-                : ["nav-back", "dashboard-edit-return"],
+                ? ["nav-back", "dashboard-tier-list-return"]
+                : ["nav-back", "dashboard-edit-return", "dashboard-tier-list-return"],
           },
     });
   }

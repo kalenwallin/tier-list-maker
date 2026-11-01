@@ -1,5 +1,5 @@
-import { Trophy } from "lucide-react";
 import { Link, useLocation } from "@tanstack/react-router";
+import { Trophy } from "lucide-react";
 import type { ReactNode } from "react";
 import { AuthNav } from "./AuthNav";
 import { ThemeToggle } from "./ThemeToggle";
@@ -22,9 +22,10 @@ export function AppShell({
   signedOutPrimaryHref?: "/sign-up" | "/lists/new";
   signedOutPrimaryLabel?: string;
 }) {
-  const isLandingPage = useLocation({
-    select: (location) => location.pathname === "/",
+  const pathname = useLocation({
+    select: (location) => location.pathname,
   });
+  const isAuthPage = pathname === "/sign-in" || pathname === "/sign-up";
 
   return (
     <main className="page-shell">
@@ -43,9 +44,13 @@ export function AppShell({
             <Link
               className="button"
               to="/dashboard"
-              viewTransition={{
-                types: [isLandingPage ? "fade-only" : dashboardTransitionType],
-              }}
+              viewTransition={
+                isAuthPage
+                  ? undefined
+                  : {
+                      types: [pathname === "/" ? "fade-only" : dashboardTransitionType],
+                    }
+              }
             >
               Dashboard
             </Link>

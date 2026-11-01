@@ -12,26 +12,30 @@ const viewTransitionsChangeEvent = "tier-list-maker-view-transitions-change";
  * before hydration so the first navigation already respects the preference.
  */
 export const viewTransitionsScript = `
-  try {
-    if (localStorage.getItem("${viewTransitionsStorageKey}") === "off") {
+  (() => {
+    let enabled = false;
+    try {
+      enabled = localStorage.getItem("${viewTransitionsStorageKey}") === "on";
+    } catch {}
+    if (!enabled) {
       Object.defineProperty(document, "startViewTransition", {
         configurable: true,
         value: undefined,
       });
     }
-  } catch {}
+  })();
 `;
 
 function getSnapshot() {
   try {
-    return window.localStorage.getItem(viewTransitionsStorageKey) !== "off";
+    return window.localStorage.getItem(viewTransitionsStorageKey) === "on";
   } catch {
-    return true;
+    return false;
   }
 }
 
 function getServerSnapshot() {
-  return true;
+  return false;
 }
 
 function subscribe(onStoreChange: () => void) {

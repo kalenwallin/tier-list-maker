@@ -9,7 +9,7 @@ export const Route = createFileRoute("/dashboard")({
 
 function DashboardPage() {
   return (
-    <DirectionalTransition animateBackEntry={false}>
+    <DirectionalTransition name="dashboard-content">
       <AppShell hideDashboard>
         <DashboardClient />
       </AppShell>

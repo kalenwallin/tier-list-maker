@@ -1,21 +1,11 @@
 import type { ReactNode } from "react";
 
 export function DirectionalTransition({
-  animateBackEntry = true,
   children,
+  name = "route-content",
 }: {
-  animateBackEntry?: boolean;
   children: ReactNode;
+  name?: "route-content" | "dashboard-content";
 }) {
-  return (
-    <div
-      style={{
-        viewTransitionName: animateBackEntry
-          ? "route-content"
-          : "route-content-no-back-entry",
-      }}
-    >
-      {children}
-    </div>
-  );
+  return <div style={{ viewTransitionName: name }}>{children}</div>;
 }

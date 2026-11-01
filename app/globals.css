@@ -143,46 +143,42 @@
     var(--duration-move) ease-in-out both slide reverse;
 }
 
+/*
+ * Route changes fade the old page out completely before the new one fades in.
+ * The partial `fade` keyframe would leave the old page showing behind the new one.
+ */
 html:active-view-transition-type(nav-forward)::view-transition-old(route-content) {
   --slide-offset: -60px;
   animation:
-    var(--duration-exit) ease-in both fade reverse,
+    var(--duration-exit) ease-in both route-fade reverse,
     var(--duration-move) ease-in-out both slide reverse;
 }
 
-html:active-view-transition-type(nav-forward)::view-transition-old(
-  route-content-no-back-entry
-) {
-  animation: var(--duration-exit) ease-in both fade reverse;
+html:active-view-transition-type(nav-forward)::view-transition-old(dashboard-content) {
+  animation: var(--duration-exit) ease-in both route-fade reverse;
 }
 
 html:active-view-transition-type(dashboard-tier-list-exit)::view-transition-old(
-  route-content-no-back-entry
+  dashboard-content
 ) {
   display: none;
 }
 
 html:active-view-transition-type(fade-only)::view-transition-old(route-content),
-html:active-view-transition-type(fade-only)::view-transition-old(
-  route-content-no-back-entry
-) {
+html:active-view-transition-type(fade-only)::view-transition-old(dashboard-content) {
   animation: var(--duration-exit) ease-in both route-fade reverse;
 }
 
 html:active-view-transition-type(fade-only)::view-transition-new(route-content),
-html:active-view-transition-type(fade-only)::view-transition-new(
-  route-content-no-back-entry
-) {
+html:active-view-transition-type(fade-only)::view-transition-new(dashboard-content) {
   animation: var(--duration-enter) ease-out var(--duration-exit) both route-fade;
 }
 
 html:active-view-transition-type(nav-forward)::view-transition-new(route-content),
-html:active-view-transition-type(nav-forward)::view-transition-new(
-  route-content-no-back-entry
-) {
+html:active-view-transition-type(nav-forward)::view-transition-new(dashboard-content) {
   --slide-offset: 60px;
   animation:
-    var(--duration-enter) ease-out var(--duration-exit) both fade,
+    var(--duration-enter) ease-out var(--duration-exit) both route-fade,
     var(--duration-move) ease-in-out both slide;
 }
 
@@ -191,19 +187,17 @@ html:active-view-transition-type(dashboard-edit)::view-transition-new(route-cont
 }
 
 html:active-view-transition-type(nav-back)::view-transition-old(route-content),
-html:active-view-transition-type(nav-back)::view-transition-old(
-  route-content-no-back-entry
-) {
+html:active-view-transition-type(nav-back)::view-transition-old(dashboard-content) {
   --slide-offset: 60px;
   animation:
-    var(--duration-exit) ease-in both fade reverse,
+    var(--duration-exit) ease-in both route-fade reverse,
     var(--duration-move) ease-in-out both slide reverse;
 }
 
 html:active-view-transition-type(dashboard-edit-return)::view-transition-old(
   route-content
 ) {
-  animation: var(--duration-exit) ease-in both fade reverse;
+  animation: var(--duration-exit) ease-in both route-fade reverse;
 }
 
 html:active-view-transition-type(dashboard-edit-return)::view-transition-group(
@@ -218,37 +212,43 @@ html:active-view-transition-type(dashboard-edit-return)::view-transition-old(
   display: none;
 }
 
-html:active-view-transition-type(nav-back)::view-transition-new(route-content) {
+html:active-view-transition-type(nav-back)::view-transition-new(route-content),
+html:active-view-transition-type(nav-back)::view-transition-new(dashboard-content) {
   --slide-offset: -60px;
   animation:
-    var(--duration-enter) ease-out var(--duration-exit) both fade,
+    var(--duration-enter) ease-out var(--duration-exit) both route-fade,
     var(--duration-move) ease-in-out both slide;
 }
 
-html:active-view-transition-type(nav-back)::view-transition-group(
-  route-content-no-back-entry
+/*
+ * A tier list morphing back into its card needs the dashboard in place right away,
+ * so swap pages instantly and let the morph carry the motion.
+ */
+html:active-view-transition-type(dashboard-tier-list-return)::view-transition-old(
+  route-content
+) {
+  display: none;
+}
+
+html:active-view-transition-type(dashboard-tier-list-return)::view-transition-group(
+  dashboard-content
 ),
-html:active-view-transition-type(nav-back)::view-transition-new(
-  route-content-no-back-entry
+html:active-view-transition-type(dashboard-tier-list-return)::view-transition-new(
+  dashboard-content
 ) {
   animation: none;
 }
 
+html:active-view-transition-type(compact-tier-list)::view-transition-old(route-content),
 html:active-view-transition-type(compact-tier-list)::view-transition-old(
-  route-content
-),
-html:active-view-transition-type(compact-tier-list)::view-transition-old(
-  route-content-no-back-entry
+  dashboard-content
 ) {
-  animation: var(--duration-compact-exit) ease-in both compact-tier-list-fade
-    reverse;
+  animation: var(--duration-compact-exit) ease-in both compact-tier-list-fade reverse;
 }
 
+html:active-view-transition-type(compact-tier-list)::view-transition-new(route-content),
 html:active-view-transition-type(compact-tier-list)::view-transition-new(
-  route-content
-),
-html:active-view-transition-type(compact-tier-list)::view-transition-new(
-  route-content-no-back-entry
+  dashboard-content
 ) {
   animation: var(--duration-compact-enter) ease-out var(--duration-compact-exit) both
     compact-tier-list-fade;
@@ -291,6 +291,7 @@ html:active-view-transition-type(nav-back)::view-transition-group(
   .tier-list-morph-return
 ) {
   z-index: 1000;
+  animation-timing-function: ease-in-out;
 }
 
 ::view-transition-old(.tier-list-morph) {
@@ -299,6 +300,54 @@ html:active-view-transition-type(nav-back)::view-transition-group(
 
 ::view-transition-new(.tier-list-morph) {
   animation: none;
+}
+
+/* Shrink the actual detailed view before blending in the dashboard thumbnail. */
+html:active-view-transition-type(dashboard-tier-list-return) .tier-export-card * {
+  view-transition-name: none !important;
+}
+
+html:active-view-transition-type(dashboard-tier-list-return)::view-transition-group(
+  .tier-list-morph-return
+) {
+  overflow: clip;
+}
+
+html:active-view-transition-type(dashboard-tier-list-return)::view-transition-old(
+  .tier-list-morph-return
+),
+html:active-view-transition-type(dashboard-tier-list-return)::view-transition-new(
+  .tier-list-morph-return
+) {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: top left;
+}
+
+/* A list row stays full width as its height contracts; contain would narrow it. */
+html:active-view-transition-type(dashboard-tier-list-return)::view-transition-old(
+  .tier-list-morph-return-list
+),
+html:active-view-transition-type(dashboard-tier-list-return)::view-transition-new(
+  .tier-list-morph-return-list
+) {
+  object-fit: fill;
+}
+
+html:active-view-transition-type(dashboard-tier-list-return)::view-transition-old(
+  .tier-list-morph-return
+) {
+  display: block;
+  animation: var(--duration-exit) ease-out
+    calc(var(--duration-move) - var(--duration-exit)) both route-fade reverse;
+}
+
+html:active-view-transition-type(dashboard-tier-list-return)::view-transition-new(
+  .tier-list-morph-return
+) {
+  animation: var(--duration-exit) ease-out
+    calc(var(--duration-move) - var(--duration-exit)) both route-fade;
 }
 
 html:active-view-transition-type(dashboard-preview-expand)::view-transition-group(
@@ -463,6 +512,44 @@ html:active-view-transition-type(mode-to-edit)::view-transition-image-pair(
   animation: var(--duration-enter) ease-out var(--duration-exit) both scale-up;
 }
 
+/* Layout changes include previews in the grid fade instead of morphing them separately. */
+html:active-view-transition-type(dashboard-layout) .dashboard-tier-preview {
+  view-transition-name: none !important;
+}
+
+html:active-view-transition-type(dashboard-layout)::view-transition-group(root),
+html:active-view-transition-type(dashboard-layout)::view-transition-group(
+  dashboard-content
+),
+::view-transition-group(.dashboard-layout) {
+  animation: none;
+}
+
+html:active-view-transition-type(dashboard-layout)::view-transition-old(root),
+html:active-view-transition-type(dashboard-layout)::view-transition-old(
+  dashboard-content
+) {
+  display: none;
+}
+
+html:active-view-transition-type(dashboard-layout)::view-transition-new(root),
+html:active-view-transition-type(dashboard-layout)::view-transition-new(
+  dashboard-content
+) {
+  animation: none;
+}
+
+::view-transition-old(.dashboard-layout) {
+  height: auto;
+  animation: var(--duration-compact-exit) ease-in both route-fade reverse;
+}
+
+::view-transition-new(.dashboard-layout) {
+  height: auto;
+  animation: var(--duration-compact-enter) ease-out var(--duration-compact-exit) both
+    route-fade;
+}
+
 @keyframes scale-down {
   from {
     transform: scale(1);
@@ -496,6 +583,27 @@ html:active-view-transition-type(mode-to-edit)::view-transition-image-pair(
 
 ::view-transition-new(persistent-nav) {
   animation: none;
+}
+
+/* Auth pages fade as one snapshot so dashboard cards cannot linger over the form. */
+html:active-view-transition-type(auth-navigation) body * {
+  view-transition-name: none !important;
+}
+
+html:active-view-transition-type(auth-navigation) .topbar {
+  view-transition-name: persistent-nav !important;
+}
+
+html:active-view-transition-type(auth-navigation)::view-transition-group(root) {
+  animation: none;
+}
+
+html:active-view-transition-type(auth-navigation)::view-transition-old(root) {
+  animation: 100ms ease-in both route-fade reverse;
+}
+
+html:active-view-transition-type(auth-navigation)::view-transition-new(root) {
+  animation: 160ms ease-out 100ms both route-fade;
 }
 
 html:active-view-transition-type(mode-change) .topbar {
