@@ -715,7 +715,7 @@ export function DashboardClient() {
       <dialog
         aria-labelledby="remove-dialog-title"
         aria-describedby="remove-dialog-description"
-        className="remove-dialog"
+        className={skipViewTransitions ? "remove-dialog" : "remove-dialog is-animated"}
         onCancel={(event) => {
           if (isRemoving) {
             event.preventDefault();

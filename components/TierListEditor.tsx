@@ -497,7 +497,7 @@ export function TierListEditor({
       <dialog
         aria-describedby="remove-detail-dialog-description"
         aria-labelledby="remove-detail-dialog-title"
-        className="remove-dialog"
+        className={skipViewTransitions ? "remove-dialog" : "remove-dialog is-animated"}
         onCancel={(event) => {
           if (isRemoving) event.preventDefault();
         }}

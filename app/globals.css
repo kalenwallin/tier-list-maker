@@ -962,10 +962,8 @@ button:disabled {
   padding: 16px 22px 19px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .remove-dialog[open] .remove-dialog-card {
-    animation: remove-dialog-in var(--duration-enter) ease-out both;
-  }
+.remove-dialog.is-animated[open] .remove-dialog-card {
+  animation: remove-dialog-in var(--duration-enter) ease-out both;
 }
 
 @keyframes remove-dialog-in {
