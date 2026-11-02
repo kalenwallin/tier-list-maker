@@ -16,6 +16,7 @@ import {
   addTransitionType,
   startTransition,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -115,6 +116,21 @@ export function TierListEditor({
     setTopbarActionSlot(document.getElementById("topbar-action-slot"));
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  // The kept tray props the page open until the transition ends. Settle the scroll
+  // before the new snapshot, so removing the tray can't snap the page afterwards.
+  useLayoutEffect(() => {
+    if (!isPreviewMode || !keepEmptyTrayDuringModeChange) return;
+
+    const trayHeight = modeTransitionFrameRef.current
+      ?.querySelector<HTMLElement>(".item-tray-pad")
+      ?.getBoundingClientRect().height;
+    if (!trayHeight) return;
+
+    const { clientHeight, scrollHeight } = document.documentElement;
+    const settledMaxScroll = Math.max(0, scrollHeight - trayHeight - clientHeight);
+    if (window.scrollY > settledMaxScroll) window.scrollTo(0, settledMaxScroll);
+  }, [isPreviewMode, keepEmptyTrayDuringModeChange]);
 
   useEffect(() => {
     if (!list) return;
@@ -277,14 +293,6 @@ export function TierListEditor({
       const trayIsEmpty = items.every((item) => item.tierId);
       if (trayIsEmpty) {
         flushSync(() => setKeepEmptyTrayDuringModeChange(true));
-      }
-
-      const frameHeight = modeTransitionFrameRef.current?.getBoundingClientRect().height;
-      if (frameHeight) {
-        document.documentElement.style.setProperty(
-          "--mode-frame-height",
-          `${frameHeight}px`,
-        );
       }
 
       const trayHeight = modeTransitionFrameRef.current

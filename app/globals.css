@@ -510,7 +510,6 @@ html:active-view-transition-type(dashboard-preview-expand)::view-transition-new(
 
 ::view-transition-group(.mode-frame-morph) {
   animation-duration: var(--duration-mode-change);
-  height: var(--mode-frame-height);
 }
 
 ::view-transition-old(.mode-morph) {
@@ -527,8 +526,34 @@ html:active-view-transition-type(dashboard-preview-expand)::view-transition-new(
 
 ::view-transition-new(.mode-frame-morph) {
   animation: none;
-  height: var(--mode-frame-height);
+  height: 100%;
   object-fit: fill;
+}
+
+/*
+ * With an empty tray both snapshots still contain it, so the image pair clips it
+ * off. The clip cuts the snapshot's edges and shadow, so the pair takes on the
+ * card's own box styles and the snapshot sits just inside its border.
+ */
+html:active-view-transition-type(mode-to-preview)::view-transition-image-pair(
+  .mode-frame-morph
+),
+html:active-view-transition-type(mode-to-edit)::view-transition-image-pair(
+  .mode-frame-morph
+) {
+  overflow: clip;
+  box-sizing: border-box;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+html:active-view-transition-type(mode-to-preview)::view-transition-new(.mode-frame-morph),
+html:active-view-transition-type(mode-to-edit)::view-transition-new(.mode-frame-morph) {
+  inset-block-start: -2px;
+  inset-inline-start: -2px;
+  width: calc(100% + 4px);
 }
 
 html:active-view-transition-type(mode-to-preview)::view-transition-group(
@@ -555,11 +580,13 @@ html:active-view-transition-type(mode-to-preview)::view-transition-new(
 html:active-view-transition-type(mode-to-preview)::view-transition-image-pair(
   .mode-frame-morph
 ) {
-  overflow: clip;
-  box-sizing: border-box;
-  border-bottom: 2px solid var(--border);
-  border-radius: 0 0 8px 8px;
   animation: var(--duration-mode-change) ease both collapse-empty-tray-area;
+}
+
+html:active-view-transition-type(mode-to-preview)::view-transition-new(
+  .mode-frame-morph
+) {
+  animation: var(--duration-mode-change) ease both collapse-empty-tray-snapshot;
 }
 
 html:active-view-transition-type(mode-to-edit)::view-transition-group(
@@ -586,11 +613,11 @@ html:active-view-transition-type(mode-to-edit)::view-transition-new(
 html:active-view-transition-type(mode-to-edit)::view-transition-image-pair(
   .mode-frame-morph
 ) {
-  overflow: clip;
-  box-sizing: border-box;
-  border-bottom: 2px solid var(--border);
-  border-radius: 0 0 8px 8px;
   animation: var(--duration-mode-change) ease both expand-empty-tray-area;
+}
+
+html:active-view-transition-type(mode-to-edit)::view-transition-new(.mode-frame-morph) {
+  animation: var(--duration-mode-change) ease both expand-empty-tray-snapshot;
 }
 
 ::view-transition-group(.item-morph) {
@@ -604,12 +631,26 @@ html:active-view-transition-type(mode-to-edit)::view-transition-image-pair(
   }
 }
 
+/*
+ * Percentages follow the group, so the clip moves with the card's width and
+ * ends at its settled height however the layout rewraps. The snapshot adds back
+ * what the clip removes, plus the pair's borders, to stay at the group's height.
+ */
 @keyframes collapse-empty-tray-area {
   from {
-    height: var(--mode-frame-height);
+    height: 100%;
   }
   to {
-    height: calc(var(--mode-frame-height) - var(--mode-empty-tray-height));
+    height: calc(100% - var(--mode-empty-tray-height));
+  }
+}
+
+@keyframes collapse-empty-tray-snapshot {
+  from {
+    height: calc(100% + 4px);
+  }
+  to {
+    height: calc(100% + 4px + var(--mode-empty-tray-height));
   }
 }
 
@@ -622,10 +663,19 @@ html:active-view-transition-type(mode-to-edit)::view-transition-image-pair(
 
 @keyframes expand-empty-tray-area {
   from {
-    height: calc(var(--mode-frame-height) - var(--mode-empty-tray-height));
+    height: calc(100% - var(--mode-empty-tray-height));
   }
   to {
-    height: var(--mode-frame-height);
+    height: 100%;
+  }
+}
+
+@keyframes expand-empty-tray-snapshot {
+  from {
+    height: calc(100% + 4px + var(--mode-empty-tray-height));
+  }
+  to {
+    height: calc(100% + 4px);
   }
 }
 
@@ -1558,7 +1608,9 @@ button:disabled {
   content: "";
 }
 
+/* Holds the tray's top margin inside, so measuring this covers the whole tray area. */
 .item-tray-pad {
+  display: flow-root;
   padding-top: 0;
 }
 
