@@ -13,7 +13,7 @@ export function ViewTransitionsToggle() {
     <button
       aria-label="Animated transitions"
       aria-pressed={viewTransitionsEnabled}
-      className="button icon"
+      className="button icon view-transitions-toggle"
       onClick={() => setViewTransitionsEnabled(!viewTransitionsEnabled)}
       title={
         viewTransitionsEnabled

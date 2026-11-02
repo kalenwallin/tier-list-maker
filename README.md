@@ -7,6 +7,7 @@ Lists are synced between devices with Convex.
 
 - TanStack Start with TanStack Router and Vite
 - React canary view transitions for route, shared-element, and editor animations
+  (opt-in on desktop, off on mobile)
 - Convex for synced tier list storage
 - Convex Auth for authentication, with email codes and passwords sent through
   Resend

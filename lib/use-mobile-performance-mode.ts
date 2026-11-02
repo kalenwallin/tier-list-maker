@@ -2,8 +2,10 @@
 
 import { useSyncExternalStore } from "react";
 
-const MOBILE_PERFORMANCE_QUERY =
-  "(max-width: 700px), (pointer: coarse), (prefers-reduced-motion: reduce)";
+/** Mirrors the mobile `@media` block at the end of `app/globals.css`. */
+export const MOBILE_DEVICE_QUERY = "(max-width: 700px), (pointer: coarse)";
+
+const MOBILE_PERFORMANCE_QUERY = `${MOBILE_DEVICE_QUERY}, (prefers-reduced-motion: reduce)`;
 
 function getSnapshot() {
   return window.matchMedia(MOBILE_PERFORMANCE_QUERY).matches;

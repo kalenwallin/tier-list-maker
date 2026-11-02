@@ -2252,10 +2252,15 @@ button:disabled {
   }
 }
 
+/* Mirrors MOBILE_DEVICE_QUERY in lib/use-mobile-performance-mode.ts. */
 @media (max-width: 700px), (pointer: coarse) {
   .list-card {
     content-visibility: auto;
     contain-intrinsic-size: auto 180px;
+  }
+
+  .view-transitions-toggle {
+    display: none;
   }
 }
 
