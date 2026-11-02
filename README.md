@@ -62,6 +62,10 @@ deployment before building and typechecking, overriding the development URL in
 `.env.local`. It also sets both public app URLs to `https://tierlistmaker.win` so
 shared links use the production domain.
 
+`src/server.ts` redirects `www` and plain HTTP to `https://tierlistmaker.win`. The
+`www` Workers route in `wrangler.jsonc` needs a proxied `www` DNS record, so keep
+that record even though its origin is never reached.
+
 For Cloudflare Workers Builds, leave **Build command** empty and set **Deploy
 command** to `bun run deploy`. This script builds and typechecks the app before
 deploying Convex and the Worker. Use Bun commands in the dashboard to match the

@@ -28,14 +28,17 @@ export async function getPublicTierList(id: string) {
   );
 }
 
+// Resolves to `undefined` when Convex can't answer, as `useQuery` does while
+// loading. `null` is reserved for a list that doesn't exist, so an outage can't
+// turn real lists into 404s.
 async function queryConvex<T>(run: (client: ConvexHttpClient) => Promise<T>) {
   try {
     const convexUrl = getPublicEnv("NEXT_PUBLIC_CONVEX_URL");
-    if (!convexUrl) return null;
+    if (!convexUrl) return undefined;
 
     return await run(new ConvexHttpClient(convexUrl));
   } catch {
-    return null;
+    return undefined;
   }
 }
 

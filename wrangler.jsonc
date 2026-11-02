@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "tier-list-maker",
-  "main": "@tanstack/react-start/server-entry",
+  "main": "src/server.ts",
   // Runtime variables are managed in the Cloudflare dashboard. Preserve them
   // when Wrangler deploys a new Worker version.
   "keep_vars": true,
@@ -13,6 +13,13 @@
     {
       "pattern": "tierlistmaker.win",
       "custom_domain": true
+    },
+    // Lets src/server.ts redirect `www` to the apex. A route only runs while
+    // its hostname has a proxied DNS record, so keep the `www` record even
+    // though its origin is never reached.
+    {
+      "pattern": "www.tierlistmaker.win/*",
+      "zone_name": "tierlistmaker.win"
     }
   ],
   "observability": {

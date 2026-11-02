@@ -6,7 +6,7 @@ export const Route = createFileRoute("/lists/$id/opengraph-image")({
   server: {
     handlers: {
       GET: async ({ params }) =>
-        renderTierListOpenGraphImage(await getPublicTierList(params.id)),
+        renderTierListOpenGraphImage((await getPublicTierList(params.id)) ?? null),
     },
   },
 });

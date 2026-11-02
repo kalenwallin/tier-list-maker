@@ -4,7 +4,12 @@ import { DirectionalTransition } from "@/components/DirectionalTransition";
 import { SignInForm } from "@/components/SignInForm";
 
 export const Route = createFileRoute("/sign-in")({
-  head: () => ({ meta: [{ title: "Sign in | Tier List Maker" }] }),
+  head: () => ({
+    meta: [
+      { title: "Sign in | Tier List Maker" },
+      { name: "robots", content: "noindex" },
+    ],
+  }),
   component: SignInPage,
 });
 

@@ -6,7 +6,10 @@ import { Check, Copy, Loader2, Pencil } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { api } from "@/convex/_generated/api";
+import type { SharedTierList } from "@/lib/share-metadata";
 import { getListUrl, getShareUrl } from "@/lib/site-url";
+import { AppShell } from "./AppShell";
+import { DirectionalTransition } from "./DirectionalTransition";
 import { TierListPreview } from "./TierListPreview";
 
 // A list is reachable from its share link or from its editor URL.
@@ -14,7 +17,15 @@ type SharedTierListSource =
   | { shareId: string; listId?: never }
   | { listId: string; shareId?: never };
 
-export function SharedTierListView({ shareId, listId }: SharedTierListSource) {
+type SharedTierListViewProps = SharedTierListSource & {
+  initialList?: SharedTierList;
+};
+
+export function SharedTierListView({
+  shareId,
+  listId,
+  initialList,
+}: SharedTierListViewProps) {
   const [topbarLeadingActionSlot, setTopbarLeadingActionSlot] =
     useState<HTMLElement | null>(null);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">("idle");
@@ -26,7 +37,10 @@ export function SharedTierListView({ shareId, listId }: SharedTierListSource) {
     api.tierLists.getPublic,
     listId === undefined ? "skip" : { id: listId },
   );
-  const list = shareId === undefined ? publicList : sharedList;
+  const liveList = shareId === undefined ? publicList : sharedList;
+  // Convex only answers over its WebSocket, which neither the server render nor
+  // crawlers get, so fall back to the list the route loaded.
+  const list = liveList === undefined ? initialList : liveList;
   const linkUrl = shareId === undefined ? getListUrl(listId) : getShareUrl(shareId);
 
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -55,15 +69,7 @@ export function SharedTierListView({ shareId, listId }: SharedTierListSource) {
   }
 
   if (list === null) {
-    return (
-      <section className="panel panel-pad">
-        <h1>Shared tier list not found</h1>
-        <p className="muted">The link may have been removed or copied incorrectly.</p>
-        <Link className="button" to="/">
-          Make your own
-        </Link>
-      </section>
-    );
+    return <SharedTierListNotFound />;
   }
 
   return (
@@ -116,5 +122,27 @@ export function SharedTierListView({ shareId, listId }: SharedTierListSource) {
         </Link>
       </div>
     </div>
+  );
+}
+
+function SharedTierListNotFound() {
+  return (
+    <section className="panel panel-pad">
+      <h1>Shared tier list not found</h1>
+      <p className="muted">The link may have been removed or copied incorrectly.</p>
+      <Link className="button" to="/">
+        Make your own
+      </Link>
+    </section>
+  );
+}
+
+export function SharedTierListNotFoundPage() {
+  return (
+    <DirectionalTransition>
+      <AppShell hideSignOut>
+        <SharedTierListNotFound />
+      </AppShell>
+    </DirectionalTransition>
   );
 }

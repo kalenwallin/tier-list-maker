@@ -4,6 +4,7 @@ import { DirectionalTransition } from "@/components/DirectionalTransition";
 import { NewTierListClient } from "@/components/NewTierListClient";
 
 export const Route = createFileRoute("/lists/new")({
+  head: () => ({ meta: [{ name: "robots", content: "noindex" }] }),
   component: NewTierListPage,
 });
 

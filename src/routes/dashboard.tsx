@@ -4,6 +4,7 @@ import { DashboardClient } from "@/components/DashboardClient";
 import { DirectionalTransition } from "@/components/DirectionalTransition";
 
 export const Route = createFileRoute("/dashboard")({
+  head: () => ({ meta: [{ name: "robots", content: "noindex" }] }),
   component: DashboardPage,
 });
 

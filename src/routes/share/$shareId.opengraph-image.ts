@@ -6,7 +6,9 @@ export const Route = createFileRoute("/share/$shareId/opengraph-image")({
   server: {
     handlers: {
       GET: async ({ params }) =>
-        renderTierListOpenGraphImage(await getSharedTierList(params.shareId)),
+        renderTierListOpenGraphImage(
+          (await getSharedTierList(params.shareId)) ?? null,
+        ),
     },
   },
 });
