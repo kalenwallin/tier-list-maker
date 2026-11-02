@@ -357,7 +357,9 @@ html:active-view-transition-type(dashboard-tier-list-return)::view-transition-ne
  * the contents nest inside it so they stay unscaled and move with their card.
  */
 html:active-view-transition-type(dashboard-compact) .list-card-details,
-html:active-view-transition-type(dashboard-compact) .list-card-item-count {
+html:active-view-transition-type(dashboard-compact) .list-card-item-count,
+html:active-view-transition-type(dashboard-compact) .new-list-card-icon,
+html:active-view-transition-type(dashboard-compact) .new-list-card-copy {
   view-transition-name: match-element;
   view-transition-class: list-card-content;
   view-transition-group: nearest;
@@ -387,6 +389,14 @@ html:active-view-transition-type(dashboard-compact) .dashboard-tier-preview {
   box-shadow:
     inset 0 0 0 2px var(--border),
     5px 5px 0 var(--raised-shadow);
+}
+
+/* Inset shadows cannot be dashed, but an outline also leaves the nested groups in place. */
+::view-transition-group(.new-list-card-frame) {
+  outline: 2px dashed var(--border);
+  outline-offset: -2px;
+  background: var(--soft-panel);
+  box-shadow: 5px 5px 0 var(--raised-shadow);
 }
 
 /* Keep the buttons above the preview that is revealed behind them. */

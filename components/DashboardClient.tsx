@@ -1140,20 +1140,28 @@ export function DashboardClient() {
               );
             })}
             {isSearchActive ? null : (
-              <button
-                className="new-list-card"
-                disabled={isCreating}
-                onClick={() => void create()}
-                type="button"
+              <ViewTransition
+                default="none"
+                update={{
+                  "dashboard-compact": "list-card-frame new-list-card-frame",
+                  default: "none",
+                }}
               >
-                <span className="new-list-card-icon" aria-hidden="true">
-                  {isCreating ? <Loader2 size={24} /> : <FilePlus2 size={24} />}
-                </span>
-                <span className="new-list-card-copy">
-                  <strong>{isCreating ? "Creating list" : "Create a new list"}</strong>
-                  <span>Start with a blank tier list</span>
-                </span>
-              </button>
+                <button
+                  className="new-list-card"
+                  disabled={isCreating}
+                  onClick={() => void create()}
+                  type="button"
+                >
+                  <span className="new-list-card-icon" aria-hidden="true">
+                    {isCreating ? <Loader2 size={24} /> : <FilePlus2 size={24} />}
+                  </span>
+                  <span className="new-list-card-copy">
+                    <strong>{isCreating ? "Creating list" : "Create a new list"}</strong>
+                    <span>Start with a blank tier list</span>
+                  </span>
+                </button>
+              </ViewTransition>
             )}
           </DashboardGrid>
           {syncMode === "cloud" ? (
