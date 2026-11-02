@@ -419,10 +419,7 @@ html:active-view-transition-type(dashboard-compact) .dashboard-tier-preview {
   translate: 0 -50%;
 }
 
-/*
- * The buttons sweep the preview away, mirroring how they reveal it on expand.
- * Without nested groups it would stay behind as its card moved, so it stays hidden.
- */
+/* The buttons sweep the preview away, mirroring how they reveal it on expand. */
 @supports (view-transition-group: nearest) {
   html:active-view-transition-type(dashboard-compact)::view-transition-old(
     .dashboard-preview-expand
@@ -430,6 +427,65 @@ html:active-view-transition-type(dashboard-compact) .dashboard-tier-preview {
     display: block;
     animation: var(--duration-mode-change) ease-in both dashboard-preview-expand-down
       reverse;
+  }
+}
+
+/*
+ * Without nested groups a named preview could not follow its card, so it stays
+ * unnamed and is painted into the card's own snapshot. That snapshot is shown at
+ * its full size and clipped by the resizing card, ending at the top of the buttons
+ * (60px: 42px buttons, 16px padding, 2px border) so that they still do the sweeping.
+ */
+@supports not (view-transition-group: nearest) {
+  html:active-view-transition-type(dashboard-compact) .dashboard-tier-preview {
+    view-transition-name: none !important;
+  }
+
+  html:active-view-transition-type(dashboard-compact)::view-transition-image-pair(
+    .list-card-frame
+  ) {
+    display: block;
+    overflow: clip;
+    inset-block-end: 60px;
+  }
+
+  /* List rows keep their buttons beside the title, so only the padding and border remain. */
+  html:active-view-transition-type(dashboard-compact):has(
+    .grid.is-list-layout
+  )::view-transition-image-pair(.list-card-frame) {
+    inset-block-end: 18px;
+  }
+
+  html:active-view-transition-type(dashboard-compact)::view-transition-image-pair(
+    .new-list-card-frame
+  ) {
+    display: none;
+  }
+
+  /* Collapsing covers the old snapshot; expanding uncovers the new one. */
+  html:active-view-transition-type(dashboard-compact)::view-transition-old(
+    .list-card-frame
+  ) {
+    animation: none;
+  }
+
+  html:active-view-transition-type(dashboard-compact)::view-transition-new(
+    .list-card-frame
+  ) {
+    display: none;
+  }
+
+  html:active-view-transition-type(dashboard-preview-expand)::view-transition-old(
+    .list-card-frame
+  ) {
+    display: none;
+  }
+
+  html:active-view-transition-type(dashboard-preview-expand)::view-transition-new(
+    .list-card-frame
+  ) {
+    display: block;
+    animation: none;
   }
 }
 
