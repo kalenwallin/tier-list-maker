@@ -417,10 +417,12 @@ export function DashboardClient() {
     };
   }, []);
 
+  // Compact mode ignores this measurement in CSS, but keeps it current so leaving
+  // compact commits the final card height in the update the view transition captures.
   // biome-ignore lint/correctness/useExhaustiveDependencies: Re-measure after list content or layout changes.
   useEffect(() => {
     const grid = listGridRef.current;
-    if (!grid || mobilePerformanceMode || isCompact || effectiveLayout === "list") {
+    if (!grid || mobilePerformanceMode || effectiveLayout === "list") {
       setHasWrappedCardSummary(false);
       return;
     }
@@ -460,13 +462,7 @@ export function DashboardClient() {
       isActive = false;
       resizeObserver.disconnect();
     };
-  }, [
-    dashboardLists,
-    effectiveLayout,
-    isCompact,
-    mobilePerformanceMode,
-    normalizedSearchQuery,
-  ]);
+  }, [dashboardLists, effectiveLayout, mobilePerformanceMode, normalizedSearchQuery]);
 
   function rememberDashboardState(activeMorphListId: string) {
     if (!dashboardLists) return;
@@ -489,6 +485,7 @@ export function DashboardClient() {
     }
 
     startTransition(() => {
+      addTransitionType("dashboard-compact");
       if (isCompact) addTransitionType("dashboard-preview-expand");
       setIsCompact((current) => !current);
     });
@@ -915,6 +912,7 @@ export function DashboardClient() {
                   exit="scale-out"
                   key={list.id}
                   update={{
+                    "dashboard-compact": "list-card-frame",
                     "dashboard-layout": "none",
                     default: "auto",
                   }}

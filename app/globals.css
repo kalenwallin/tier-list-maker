@@ -350,6 +350,79 @@ html:active-view-transition-type(dashboard-tier-list-return)::view-transition-ne
     calc(var(--duration-move) - var(--duration-exit)) both route-fade;
 }
 
+/*
+ * Compact changes resize each card as a live box instead of crossfading two
+ * snapshots, so its bottom edge and buttons stay together. The group paints the
+ * card itself because it is the only pseudo-element with an animated height;
+ * the contents nest inside it so they stay unscaled and move with their card.
+ */
+html:active-view-transition-type(dashboard-compact) .list-card-details,
+html:active-view-transition-type(dashboard-compact) .list-card-item-count {
+  view-transition-name: match-element;
+  view-transition-class: list-card-content;
+  view-transition-group: nearest;
+}
+
+html:active-view-transition-type(dashboard-compact) .list-card .nav-actions {
+  view-transition-name: match-element;
+  view-transition-class: list-card-content list-card-actions;
+  view-transition-group: nearest;
+}
+
+html:active-view-transition-type(dashboard-compact) .dashboard-tier-preview {
+  view-transition-group: nearest;
+}
+
+::view-transition-group(.list-card-frame),
+::view-transition-group(.list-card-content) {
+  animation-duration: var(--duration-mode-change);
+  animation-timing-function: ease-out;
+}
+
+/* An inset shadow draws the border; a real one would offset the nested groups. */
+::view-transition-group(.list-card-frame) {
+  overflow: clip;
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow:
+    inset 0 0 0 2px var(--border),
+    5px 5px 0 var(--raised-shadow);
+}
+
+/* Keep the buttons above the preview that is revealed behind them. */
+::view-transition-group(.list-card-content) {
+  z-index: 11;
+}
+
+::view-transition-image-pair(.list-card-frame),
+::view-transition-old(.list-card-content) {
+  display: none;
+}
+
+::view-transition-new(.list-card-content) {
+  animation: none;
+}
+
+/* Grid rows can stretch the button row, which centers its buttons vertically. */
+::view-transition-new(.list-card-actions) {
+  inset-block-start: 50%;
+  translate: 0 -50%;
+}
+
+/*
+ * The buttons sweep the preview away, mirroring how they reveal it on expand.
+ * Without nested groups it would stay behind as its card moved, so it stays hidden.
+ */
+@supports (view-transition-group: nearest) {
+  html:active-view-transition-type(dashboard-compact)::view-transition-old(
+    .dashboard-preview-expand
+  ) {
+    display: block;
+    animation: var(--duration-mode-change) ease-in both dashboard-preview-expand-down
+      reverse;
+  }
+}
+
 html:active-view-transition-type(dashboard-preview-expand)::view-transition-group(
   .dashboard-preview-expand
 ) {
