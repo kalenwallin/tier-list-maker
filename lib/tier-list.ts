@@ -7,6 +7,8 @@ export type Tier = {
 export type TierItem = {
   id: string;
   label: string;
+  // Notes about the item, shown in its detail dialog.
+  description?: string;
   imageUrl?: string;
   tierId?: string;
 };

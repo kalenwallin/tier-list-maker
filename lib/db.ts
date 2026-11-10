@@ -178,6 +178,8 @@ function parseItem(value: unknown): TierItem {
   return {
     id: value.id,
     label: value.label,
+    description:
+      typeof value.description === "string" ? value.description : undefined,
     imageUrl: typeof value.imageUrl === "string" ? value.imageUrl : undefined,
     tierId: typeof value.tierId === "string" ? value.tierId : undefined,
   };

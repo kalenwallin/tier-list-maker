@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, StickyNote } from "lucide-react";
 import {
   DragEvent,
   RefObject,
@@ -28,6 +28,8 @@ type Props = {
     placement?: "before" | "after",
   ) => void;
   onDragStart?: (itemId: string) => void;
+  // Makes items open on click or Enter, such as into a detail dialog.
+  onOpenItem?: (itemId: string) => void;
   exportRef?: RefObject<HTMLDivElement | null>;
   expandableHeader?: boolean;
   isExporting?: boolean;
@@ -45,6 +47,7 @@ export function TierListPreview({
   draggable = false,
   onDropItem,
   onDragStart,
+  onOpenItem,
   exportRef,
   expandableHeader = false,
   isExporting = false,
@@ -213,6 +216,7 @@ export function TierListPreview({
                       key={item.id}
                       onDragStart={onDragStart}
                       onDrop={() => onDropItem?.(tier.id, item.id, "before")}
+                      onOpen={onOpenItem}
                       transitionNamespace={transitionNamespace}
                     />
                   ))}
@@ -256,6 +260,7 @@ export function TierListPreview({
                 key={item.id}
                 onDragStart={onDragStart}
                 onDrop={() => onDropItem?.(undefined, item.id, "before")}
+                onOpen={onOpenItem}
                 transitionNamespace={transitionNamespace}
               />
             ))}
@@ -271,12 +276,14 @@ function AnimatedTile({
   item,
   onDragStart,
   onDrop,
+  onOpen,
   transitionNamespace,
 }: {
   draggable: boolean;
   item: TierItem;
   onDragStart?: (itemId: string) => void;
   onDrop: () => void;
+  onOpen?: (itemId: string) => void;
   transitionNamespace: string;
 }) {
   return (
@@ -290,7 +297,12 @@ function AnimatedTile({
     >
       <div className="tile-position">
         <ItemEdgeDropTarget draggable={draggable} onDrop={onDrop} />
-        <Tile draggable={draggable} item={item} onDragStart={onDragStart} />
+        <Tile
+          draggable={draggable}
+          item={item}
+          onDragStart={onDragStart}
+          onOpen={onOpen}
+        />
       </div>
     </ViewTransition>
   );
@@ -349,26 +361,58 @@ function Tile({
   item,
   draggable,
   onDragStart,
+  onOpen,
 }: {
   item: TierItem;
   draggable: boolean;
   onDragStart?: (itemId: string) => void;
+  onOpen?: (itemId: string) => void;
 }) {
+  const hasDescription = Boolean(item.description?.trim());
+  const name = item.label.trim() || "Untitled item";
+
   return (
     <article
-      className="tile"
+      aria-haspopup={onOpen ? "dialog" : undefined}
+      aria-label={
+        onOpen ? (hasDescription ? `${name}, has a description` : name) : undefined
+      }
+      className={onOpen ? "tile is-openable" : "tile"}
       draggable={draggable}
+      onClick={onOpen ? () => onOpen(item.id) : undefined}
       onDragStart={(event) => {
         event.dataTransfer.effectAllowed = "move";
         event.dataTransfer.setData("text/plain", item.id);
         onDragStart?.(item.id);
       }}
+      onKeyDown={
+        onOpen
+          ? (event) => {
+              if (event.key !== "Enter" && event.key !== " ") return;
+              event.preventDefault();
+              onOpen(item.id);
+            }
+          : undefined
+      }
+      // Edit mode drags tiles, and Firefox can't drag a <button>.
+      role={onOpen ? "button" : undefined}
+      tabIndex={onOpen ? 0 : undefined}
       title={item.label}
     >
       <div className="tile-media">
         <ItemImage draggable={false} imageUrl={item.imageUrl} label={item.label} />
       </div>
       <div className="tile-label">{item.label}</div>
+      {hasDescription ? (
+        <span
+          aria-hidden="true"
+          className="tile-description-badge"
+          data-export-exclude="true"
+          title="Has a description"
+        >
+          <StickyNote size={12} strokeWidth={2.75} />
+        </span>
+      ) : null}
     </article>
   );
 }

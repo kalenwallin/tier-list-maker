@@ -10,6 +10,7 @@ import type { SharedTierList } from "@/lib/share-metadata";
 import { getListUrl, getShareUrl } from "@/lib/site-url";
 import { AppShell } from "./AppShell";
 import { DirectionalTransition } from "./DirectionalTransition";
+import { ItemDetailDialog } from "./ItemDetailDialog";
 import { TierListPreview } from "./TierListPreview";
 
 // A list is reachable from its share link or from its editor URL.
@@ -29,6 +30,7 @@ export function SharedTierListView({
   const [topbarLeadingActionSlot, setTopbarLeadingActionSlot] =
     useState<HTMLElement | null>(null);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">("idle");
+  const [openItemId, setOpenItemId] = useState<string | null>(null);
   const sharedList = useQuery(
     api.tierLists.getShared,
     shareId === undefined ? "skip" : { shareId },
@@ -72,8 +74,18 @@ export function SharedTierListView({
     return <SharedTierListNotFound />;
   }
 
+  const openItem = openItemId
+    ? list.items.find((item) => item.id === openItemId)
+    : undefined;
+
   return (
     <div className="shared-view">
+      <ItemDetailDialog
+        item={openItem}
+        itemImageAspectRatio={list.itemImageAspectRatio}
+        onClose={() => setOpenItemId(null)}
+        tier={list.tiers.find((tier) => tier.id === openItem?.tierId)}
+      />
       {topbarLeadingActionSlot
         ? createPortal(
             <>
@@ -108,6 +120,7 @@ export function SharedTierListView({
         description={list.description}
         itemImageAspectRatio={list.itemImageAspectRatio}
         items={list.items}
+        onOpenItem={setOpenItemId}
         tiers={list.tiers}
         title={list.title}
         viewTransitionName={`tier-list-${list._id}`}

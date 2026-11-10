@@ -14,6 +14,7 @@ const tier = v.object({
 const tierItem = v.object({
   id: v.string(),
   label: v.string(),
+  description: v.optional(v.string()),
   imageUrl: v.optional(v.string()),
   tierId: v.optional(v.string()),
 });

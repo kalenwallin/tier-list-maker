@@ -8,7 +8,6 @@ import {
   Eye,
   ImageDown,
   ImagePlus,
-  ImageUp,
   Loader2,
   Pencil,
   Plus,
@@ -21,7 +20,6 @@ import {
   startTransition,
   useEffect,
   useLayoutEffect,
-  useMemo,
   useRef,
   useState,
   ViewTransition,
@@ -38,7 +36,6 @@ import {
   ITEM_IMAGE_ASPECT_RATIO_OPTIONS,
   ItemImageAspectRatio,
   moveItem,
-  sortItemsByTier,
   Tier,
   TierItem,
 } from "@/lib/tier-list";
@@ -46,6 +43,11 @@ import { useMobilePerformanceMode } from "@/lib/use-mobile-performance-mode";
 import { type ItemImageStatus, useItemImages } from "@/lib/use-item-images";
 import type { UseTierListResult } from "@/lib/use-tier-lists";
 import { useViewTransitionsEnabled } from "@/lib/view-transitions";
+import {
+  type ItemDetailEditor,
+  ItemDetailDialog,
+  ItemImageStatusMessage,
+} from "./ItemDetailDialog";
 import { TierListPreview } from "./TierListPreview";
 
 export function TierListEditor({
@@ -112,15 +114,13 @@ export function TierListEditor({
   const [shareStatus, setShareStatus] = useState("Copy link");
   const [copyImageStatus, setCopyImageStatus] = useState("Copy image");
   const [newTier, setNewTier] = useState("");
+  const [openItemId, setOpenItemId] = useState<string | null>(null);
   const [topbarLeadingActionSlot, setTopbarLeadingActionSlot] =
     useState<HTMLElement | null>(null);
   const [topbarActionSlot, setTopbarActionSlot] = useState<HTMLElement | null>(null);
-  const sortedItems = useMemo(() => sortItemsByTier(items, tiers), [items, tiers]);
   const itemImages = useItemImages(setItems, syncMode);
   const canAddImages = itemImages.canAddImages;
-  const itemImageInputRef = useRef<HTMLInputElement>(null);
   const newItemImagesInputRef = useRef<HTMLInputElement>(null);
-  const itemImageUploadTarget = useRef<string | null>(null);
   const copyableImageItems = items.filter(
     (item): item is TierItem & { imageUrl: string } =>
       itemImages.canCopy(item.imageUrl) &&
@@ -422,16 +422,21 @@ export function TierListEditor({
     startTransition(update);
   }
 
+  // A new item opens straight into its dialog to be named, which covers the
+  // tile's entrance, so it's added without a transition.
   function addItem() {
-    updateWithOptionalTransition(() => {
-      setItems((current) => [
-        ...current,
-        {
-          id: createId("item"),
-          label: "",
-        },
-      ]);
-    });
+    const item: TierItem = { id: createId("item"), label: "" };
+    setItems((current) => [...current, item]);
+    setOpenItemId(item.id);
+  }
+
+  function updateItem(
+    itemId: string,
+    patch: Partial<Pick<TierItem, "label" | "description">>,
+  ) {
+    setItems((current) =>
+      current.map((item) => (item.id === itemId ? { ...item, ...patch } : item)),
+    );
   }
 
   function addTier() {
@@ -503,11 +508,6 @@ export function TierListEditor({
     );
   }
 
-  function chooseItemImage(itemId: string) {
-    itemImageUploadTarget.current = itemId;
-    itemImageInputRef.current?.click();
-  }
-
   function updateItemImageUrl(itemId: string, imageUrl: string | undefined) {
     itemImages.clearStatus(itemId);
     setItems((current) =>
@@ -576,9 +576,31 @@ export function TierListEditor({
       : list.itemImageAspectRatio;
   const previewTiers = hydratedListId.current === list.id ? tiers : list.tiers;
   const previewItems = hydratedListId.current === list.id ? items : list.items;
+  const openItem = openItemId
+    ? previewItems.find((item) => item.id === openItemId)
+    : undefined;
+  const openItemEditor: ItemDetailEditor | undefined =
+    openItem && !isPreviewMode
+      ? {
+          canAddImages,
+          imageStatus: itemImages.statuses[openItem.id],
+          onChange: (patch) => updateItem(openItem.id, patch),
+          onImageUrlChange: (imageUrl) => updateItemImageUrl(openItem.id, imageUrl),
+          onImagePaste: (event) => pasteItemImage(event, openItem.id),
+          onImageUpload: (file) => void itemImages.uploadImage(openItem.id, file),
+          onRemove: () => removeItem(openItem.id),
+        }
+      : undefined;
 
   return (
     <>
+      <ItemDetailDialog
+        editor={openItemEditor}
+        item={openItem}
+        itemImageAspectRatio={previewItemImageAspectRatio}
+        onClose={() => setOpenItemId(null)}
+        tier={previewTiers.find((tier) => tier.id === openItem?.tierId)}
+      />
       <dialog
         aria-describedby="remove-detail-dialog-description"
         aria-labelledby="remove-detail-dialog-title"
@@ -769,66 +791,9 @@ export function TierListEditor({
 
             <div className="form-row">
               <span className="label">Items</span>
-              <div className="small-list">
-                {sortedItems.map((item) => (
-                  <div className="item-edit-row" key={item.id}>
-                    <input
-                      className="input"
-                      aria-label={`${item.label} label`}
-                      placeholder="Item label"
-                      value={item.label}
-                      onChange={(event) =>
-                        setItems((current) =>
-                          current.map((candidate) =>
-                            candidate.id === item.id
-                              ? { ...candidate, label: event.target.value }
-                              : candidate,
-                          ),
-                        )
-                      }
-                    />
-                    <div className="inline-row">
-                      <input
-                        className="input"
-                        aria-label={`${item.label} image URL`}
-                        placeholder={
-                          canAddImages ? "Image URL or paste image" : "Image URL"
-                        }
-                        value={item.imageUrl ?? ""}
-                        onChange={(event) =>
-                          updateItemImageUrl(
-                            item.id,
-                            event.target.value.trim() || undefined,
-                          )
-                        }
-                        onPaste={(event) => pasteItemImage(event, item.id)}
-                      />
-                      {canAddImages ? (
-                        <button
-                          aria-label={`Upload image for ${item.label || "item"}`}
-                          className="button icon"
-                          disabled={isAddingItemImage(itemImages.statuses[item.id])}
-                          onClick={() => chooseItemImage(item.id)}
-                          title="Upload image"
-                          type="button"
-                        >
-                          <ImageUp size={16} />
-                        </button>
-                      ) : null}
-                      <button
-                        className="button icon"
-                        onClick={() => removeItem(item.id)}
-                        type="button"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                    {itemImages.statuses[item.id] ? (
-                      <ItemImageStatusMessage status={itemImages.statuses[item.id]} />
-                    ) : null}
-                  </div>
-                ))}
-              </div>
+              <p className="muted item-editor-hint">
+                Click an item to edit its name, description, and image.
+              </p>
               <div className="item-actions">
                 <button className="button" onClick={addItem} type="button">
                   <Plus size={16} /> Add item
@@ -860,6 +825,11 @@ export function TierListEditor({
                   </button>
                 ) : null}
               </div>
+              <ItemImageStatusSummary
+                items={items}
+                onOpenItem={setOpenItemId}
+                statuses={itemImages.statuses}
+              />
               {syncMode === "local" ? (
                 <p className="muted item-images-hint">
                   Images you add are kept in this browser.{" "}
@@ -867,18 +837,6 @@ export function TierListEditor({
                   linked images.
                 </p>
               ) : null}
-              <input
-                accept={ITEM_IMAGE_ACCEPT}
-                hidden
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  const itemId = itemImageUploadTarget.current;
-                  event.target.value = "";
-                  if (file && itemId) void itemImages.uploadImage(itemId, file);
-                }}
-                ref={itemImageInputRef}
-                type="file"
-              />
               <input
                 accept={ITEM_IMAGE_ACCEPT}
                 hidden
@@ -960,6 +918,7 @@ export function TierListEditor({
                   draggedItemId.current = itemId;
                 }}
                 onDropItem={isPreviewMode ? undefined : dropItem}
+                onOpenItem={setOpenItemId}
                 description={previewDescription}
                 tiers={previewTiers}
                 title={previewTitle}
@@ -969,7 +928,8 @@ export function TierListEditor({
           </ViewTransition>
           {isPreviewMode ? null : (
             <p className="muted">
-              Drag items between rows and the item tray; every edit is saved automatically
+              Drag items between rows and the item tray, or click one to edit it; every
+              edit is saved automatically
               {syncMode === "cloud" ? " to cloud sync." : " in this browser."}
             </p>
           )}
@@ -979,28 +939,50 @@ export function TierListEditor({
   );
 }
 
-function isAddingItemImage(status: ItemImageStatus | undefined) {
-  return status?.state === "uploading" || status?.state === "saving";
-}
+// Images added from the sidebar upload in the background, so their progress
+// and any failures show here; each item's dialog has the details.
+function ItemImageStatusSummary({
+  items,
+  onOpenItem,
+  statuses,
+}: {
+  items: TierItem[];
+  onOpenItem: (itemId: string) => void;
+  statuses: Record<string, ItemImageStatus>;
+}) {
+  const addingCount = Object.values(statuses).filter(
+    (status) => status.state === "uploading" || status.state === "saving",
+  ).length;
+  const failedItems = items.flatMap((item) => {
+    const status = statuses[item.id];
+    return status?.state === "error" ? [{ item, status }] : [];
+  });
 
-function ItemImageStatusMessage({ status }: { status: ItemImageStatus }) {
-  if (status.state === "error") {
-    return (
-      <p className="item-image-status is-error" role="status">
-        {status.message}
-      </p>
-    );
-  }
+  if (addingCount === 0 && failedItems.length === 0) return null;
 
   return (
-    <p className="item-image-status" role="status">
-      <Loader2 size={14} />
-      {status.state === "uploading"
-        ? "Uploading image"
-        : status.state === "saving"
-          ? "Saving image"
-          : "Saving a copy of the linked image"}
-    </p>
+    <div className="item-image-status-summary">
+      {addingCount > 0 ? (
+        <ItemImageStatusMessage
+          status={{ state: "uploading" }}
+          text={`Adding ${addingCount} ${addingCount === 1 ? "image" : "images"}`}
+        />
+      ) : null}
+      {failedItems.map(({ item, status }) => (
+        <p className="item-image-status is-error" key={item.id} role="status">
+          <span>
+            <button
+              className="text-button"
+              onClick={() => onOpenItem(item.id)}
+              type="button"
+            >
+              {item.label.trim() || "Untitled item"}
+            </button>
+            : {status.message}
+          </span>
+        </p>
+      ))}
+    </div>
   );
 }
 
