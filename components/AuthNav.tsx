@@ -3,6 +3,7 @@
 import { useAuthActions } from "@convex-dev/auth/react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useConvexAuth } from "convex/react";
+import { setAuthCookie } from "@/lib/auth-cookie";
 
 export function AuthNav({
   hideSignOut = false,
@@ -35,7 +36,14 @@ export function AuthNav({
     return (
       <button
         className="button button-secondary"
-        onClick={() => void signOut().then(() => navigate({ to: "/" }))}
+        onClick={() =>
+          void signOut().then(() => {
+            // Clear it now rather than waiting for the auth state to settle,
+            // or the landing page would redirect straight back to the dashboard.
+            setAuthCookie(false);
+            return navigate({ to: "/" });
+          })
+        }
         type="button"
       >
         Sign out

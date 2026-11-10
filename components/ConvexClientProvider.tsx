@@ -1,8 +1,9 @@
 "use client";
 
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
-import { ConvexReactClient } from "convex/react";
-import { ReactNode, useMemo } from "react";
+import { ConvexReactClient, useConvexAuth } from "convex/react";
+import { ReactNode, useEffect, useMemo } from "react";
+import { setAuthCookie } from "@/lib/auth-cookie";
 import { getPublicEnv } from "@/lib/site-url";
 
 export function ConvexClientProvider({ children }: { children: ReactNode }) {
@@ -25,5 +26,21 @@ export function ConvexClientProvider({ children }: { children: ReactNode }) {
     );
   }
 
-  return <ConvexAuthProvider client={convex}>{children}</ConvexAuthProvider>;
+  return (
+    <ConvexAuthProvider client={convex}>
+      <AuthCookieSync />
+      {children}
+    </ConvexAuthProvider>
+  );
+}
+
+// Mirrors the client-side session into a cookie the server can read.
+function AuthCookieSync() {
+  const { isAuthenticated, isLoading } = useConvexAuth();
+
+  useEffect(() => {
+    if (!isLoading) setAuthCookie(isAuthenticated);
+  }, [isAuthenticated, isLoading]);
+
+  return null;
 }
