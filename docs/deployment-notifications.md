@@ -1,19 +1,26 @@
 # Deployment notifications
 
-Cloudflare Workers Builds sends Tier List Maker build success and failure events to `#deployments` in kalen's server. Only the `main` branch is delivered. Messages include the project name, commit, and Cloudflare build logs, with mentions disabled.
+Cloudflare Workers Builds sends Tier List Maker production build events to `#deployments` in kalen's server: `build.started`, `build.succeeded`, and `build.failed`. Only the `main` branch is delivered. Each message includes the branch, commit, and a link to the Cloudflare build logs, with mentions disabled.
 
-This shares Cost Splitter's existing Discord notifier and secret:
+It mirrors Cost Splitter's setup but runs on its own Worker and queue:
 
-- Worker: `cost-splitter-deployment-notifications`
-- Queue: `cost-splitter-deployments`
-- Failed-delivery queue: `cost-splitter-deployments-failed`
-- Subscription: `tier-list-maker-deployment-results`
-- Subscription ID: `8c233d46da42403e8a818eedbccb7e0f`
-- Events: `build.succeeded`, `build.failed`
+- Worker: `tier-list-maker-deployment-notifications` (source in `workers/deployment-notifications/`, tests in `tests/deployment-notifications.test.ts`)
+- Queue: `tier-list-maker-deployments`
+- Failed-delivery queue: `tier-list-maker-deployments-failed`
+- Subscription: `tier-list-maker-deployment-results` (ID `8c233d46da42403e8a818eedbccb7e0f`)
 - Source: `workersBuilds.worker`, worker name `tier-list-maker`
 
-The shared Worker source and tests live in the Cost Splitter repository at `workers/deployment-notifications/` and `tests/deployment-notifications.test.ts`. Its `PROJECTS` binding explicitly allows Cost Splitter and Tier List Maker. Preserve that mapping when deploying the notifier. Discord webhook credentials remain stored as a Cloudflare Worker secret.
+The Discord webhook URL is stored only as the Worker secret `DISCORD_WEBHOOK_URL`. Never commit it.
 
-The notifier and enabled subscription were verified through the Cloudflare API on September 5, 2026. Delivery for Tier List Maker still needs confirmation after its next build. No application deployment was triggered during setup.
+The event subscription is managed outside `wrangler.jsonc`. To change it, deploy the consumer first, then update the existing subscription:
+
+```sh
+bunx wrangler deploy -c workers/deployment-notifications/wrangler.jsonc
+bunx wrangler secret put DISCORD_WEBHOOK_URL -c workers/deployment-notifications/wrangler.jsonc
+bunx wrangler queues subscription list tier-list-maker-deployments -c workers/deployment-notifications/wrangler.jsonc
+bunx wrangler queues subscription update tier-list-maker-deployments --id 8c233d46da42403e8a818eedbccb7e0f --events build.started,build.succeeded,build.failed -c workers/deployment-notifications/wrangler.jsonc
+```
+
+Local tests (`bun test tests/deployment-notifications.test.ts`) do not verify live delivery. Confirm that the next real production build posts both the start and result messages in Discord.
 
 Cloudflare documentation: https://developers.cloudflare.com/workers/ci-cd/builds/event-subscriptions/

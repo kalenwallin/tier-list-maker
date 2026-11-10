@@ -21,11 +21,12 @@ interface QueueMessage {
 }
 
 export function buildNotification(event: BuildEvent, env: NotificationEnv) {
+  const started = event.type === "cf.workersBuilds.worker.build.started";
   const succeeded = event.type === "cf.workersBuilds.worker.build.succeeded";
   const failed = event.type === "cf.workersBuilds.worker.build.failed";
   const metadata = event.payload?.buildTriggerMetadata;
   if (
-    (!succeeded && !failed) ||
+    (!started && !succeeded && !failed) ||
     event.source?.workerName !== env.WORKER_NAME ||
     metadata?.branch !== env.BRANCH ||
     !event.payload?.buildUuid
@@ -39,14 +40,18 @@ export function buildNotification(event: BuildEvent, env: NotificationEnv) {
     allowed_mentions: { parse: [] },
     embeds: [
       {
-        title: succeeded
-          ? "✅ Tier List Maker deployment succeeded"
-          : "❌ Tier List Maker build or deployment failed",
-        color: succeeded ? 0x22c55e : 0xef4444,
+        title: started
+          ? "🔨 Tier List Maker build started"
+          : succeeded
+            ? "✅ Tier List Maker deployment succeeded"
+            : "❌ Tier List Maker build or deployment failed",
+        color: started ? 0x3b82f6 : succeeded ? 0x22c55e : 0xef4444,
         url: buildUrl,
-        description: succeeded
-          ? "The production build and deploy completed successfully."
-          : "Cloudflare could not complete the production build and deploy. Open the build logs for details.",
+        description: started
+          ? "Cloudflare has started the production build and deploy."
+          : succeeded
+            ? "The production build and deploy completed successfully."
+            : "Cloudflare could not complete the production build and deploy. Open the build logs for details.",
         fields: [
           { name: "Branch", value: env.BRANCH, inline: true },
           {

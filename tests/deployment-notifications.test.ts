@@ -32,10 +32,10 @@ test("sends distinct success and failure notifications with build logs", () => {
   assert.deepEqual(success.allowed_mentions, { parse: [] });
 });
 
-test("ignores unrelated workers, preview branches and nonterminal events", () => {
+test("ignores unrelated workers, preview branches and unsupported events", () => {
   for (const other of [
     { ...event, source: { workerName: "other-worker" } },
-    { ...event, type: "cf.workersBuilds.worker.build.started" },
+    { ...event, type: "cf.workersBuilds.worker.build.queued" },
     { ...event, type: "cf.workersBuilds.worker.build.canceled" },
     {
       ...event,
@@ -80,7 +80,7 @@ test("failed delivery retries while irrelevant events are acknowledged", async (
           retry: ({ delaySeconds }) => outcomes.push(`retry ${delaySeconds}`),
         },
         {
-          body: { ...event, type: "cf.workersBuilds.worker.build.started" },
+          body: { ...event, type: "cf.workersBuilds.worker.build.queued" },
           ack: () => outcomes.push("ack"),
           retry: () => outcomes.push("unexpected retry"),
         },
@@ -89,4 +89,25 @@ test("failed delivery retries while irrelevant events are acknowledged", async (
     { ...env, DISCORD_WEBHOOK_URL: "" },
   );
   assert.deepEqual(outcomes, ["retry 60", "ack"]);
+});
+
+test("build-start notifications include production context and use delivery handling", async () => {
+  const started = { ...event, type: "cf.workersBuilds.worker.build.started" };
+  const notification = buildNotification(started, env)!;
+  assert.equal(notification.embeds[0].title, "🔨 Tier List Maker build started");
+  assert.equal(notification.embeds[0].color, 0x3b82f6);
+  assert.match(notification.embeds[0].url, /\/builds\/build-123$/);
+  assert.equal(notification.embeds[0].fields[1].value, "abcdef1");
+  assert.equal(
+    buildNotification({ ...started, source: { workerName: "other" } }, env),
+    null,
+  );
+  assert.equal(buildNotification(started, { ...env, BRANCH: "preview" }), null);
+  let sent = false;
+  await deliverNotification(started, env, async (_input, init) => {
+    assert.deepEqual(JSON.parse(String(init?.body)), notification);
+    sent = true;
+    return new Response("{}");
+  });
+  assert.equal(sent, true);
 });
