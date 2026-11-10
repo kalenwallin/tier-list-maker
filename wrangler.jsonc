@@ -22,6 +22,27 @@
       "zone_name": "tierlistmaker.win"
     }
   ],
+  // Item images people upload or copy from links. src/routes/api/images.ts
+  // stores them and src/routes/images/$key.ts serves them. Create the bucket
+  // once with `bunx wrangler r2 bucket create tier-list-maker-item-images`.
+  "r2_buckets": [
+    {
+      "binding": "ITEM_IMAGES",
+      "bucket_name": "tier-list-maker-item-images"
+    }
+  ],
+  // Caps how fast one account can add images. Limits are counted per
+  // Cloudflare location, so treat them as approximate.
+  "ratelimits": [
+    {
+      "name": "ITEM_IMAGE_RATE_LIMITER",
+      "namespace_id": "1001",
+      "simple": {
+        "limit": 60,
+        "period": 60
+      }
+    }
+  ],
   "observability": {
     "enabled": true,
     "logs": {

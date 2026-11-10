@@ -2229,6 +2229,32 @@ button:disabled {
   gap: 8px;
 }
 
+.item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.item-image-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.item-image-status.is-error {
+  color: var(--danger-control-foreground);
+}
+
+.item-images-hint {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
 @media (max-width: 880px) {
   .hero-grid,
   .split {

@@ -13,6 +13,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SignUpRouteImport } from './routes/sign-up'
+import { Route as ApiImagesRouteImport } from './routes/api/images'
+import { Route as ImagesKeyRouteImport } from './routes/images/$key'
 import { Route as ListsIdRouteImport } from './routes/lists/$id'
 import { Route as ListsNewRouteImport } from './routes/lists/new'
 import { Route as ShareShareIdRouteImport } from './routes/share/$shareId'
@@ -37,6 +39,16 @@ const SignInRoute = SignInRouteImport.update({
 const SignUpRoute = SignUpRouteImport.update({
   id: '/sign-up',
   path: '/sign-up',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiImagesRoute = ApiImagesRouteImport.update({
+  id: '/api/images',
+  path: '/api/images',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ImagesKeyRoute = ImagesKeyRouteImport.update({
+  id: '/images/$key',
+  path: '/images/$key',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ListsIdRoute = ListsIdRouteImport.update({
@@ -71,6 +83,8 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/api/images': typeof ApiImagesRoute
+  '/images/$key': typeof ImagesKeyRoute
   '/lists/$id': typeof ListsIdRouteWithChildren
   '/lists/new': typeof ListsNewRoute
   '/share/$shareId': typeof ShareShareIdRouteWithChildren
@@ -82,6 +96,8 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/api/images': typeof ApiImagesRoute
+  '/images/$key': typeof ImagesKeyRoute
   '/lists/$id': typeof ListsIdRouteWithChildren
   '/lists/new': typeof ListsNewRoute
   '/share/$shareId': typeof ShareShareIdRouteWithChildren
@@ -94,6 +110,8 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/api/images': typeof ApiImagesRoute
+  '/images/$key': typeof ImagesKeyRoute
   '/lists/$id': typeof ListsIdRouteWithChildren
   '/lists/new': typeof ListsNewRoute
   '/share/$shareId': typeof ShareShareIdRouteWithChildren
@@ -107,6 +125,8 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/sign-in'
     | '/sign-up'
+    | '/api/images'
+    | '/images/$key'
     | '/lists/$id'
     | '/lists/new'
     | '/share/$shareId'
@@ -118,6 +138,8 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/sign-in'
     | '/sign-up'
+    | '/api/images'
+    | '/images/$key'
     | '/lists/$id'
     | '/lists/new'
     | '/share/$shareId'
@@ -129,6 +151,8 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/sign-in'
     | '/sign-up'
+    | '/api/images'
+    | '/images/$key'
     | '/lists/$id'
     | '/lists/new'
     | '/share/$shareId'
@@ -141,6 +165,8 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
+  ApiImagesRoute: typeof ApiImagesRoute
+  ImagesKeyRoute: typeof ImagesKeyRoute
   ListsIdRoute: typeof ListsIdRouteWithChildren
   ListsNewRoute: typeof ListsNewRoute
   ShareShareIdRoute: typeof ShareShareIdRouteWithChildren
@@ -174,6 +200,20 @@ declare module '@tanstack/react-router' {
       path: '/sign-up'
       fullPath: '/sign-up'
       preLoaderRoute: typeof SignUpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/images': {
+      id: '/api/images'
+      path: '/api/images'
+      fullPath: '/api/images'
+      preLoaderRoute: typeof ApiImagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/images/$key': {
+      id: '/images/$key'
+      path: '/images/$key'
+      fullPath: '/images/$key'
+      preLoaderRoute: typeof ImagesKeyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lists/$id': {
@@ -242,6 +282,8 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
+  ApiImagesRoute: ApiImagesRoute,
+  ImagesKeyRoute: ImagesKeyRoute,
   ListsIdRoute: ListsIdRouteWithChildren,
   ListsNewRoute: ListsNewRoute,
   ShareShareIdRoute: ShareShareIdRouteWithChildren,

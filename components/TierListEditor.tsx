@@ -6,6 +6,9 @@ import {
   Copy,
   Download,
   Eye,
+  ImageDown,
+  ImagePlus,
+  ImageUp,
   Loader2,
   Pencil,
   Plus,
@@ -14,6 +17,7 @@ import {
 } from "lucide-react";
 import {
   addTransitionType,
+  ClipboardEvent,
   startTransition,
   useEffect,
   useLayoutEffect,
@@ -26,6 +30,13 @@ import { createPortal, flushSync } from "react-dom";
 import { promoteDashboardSnapshotList } from "@/lib/dashboard-snapshot";
 import { StoredTierList } from "@/lib/db";
 import { copyPngToClipboard, downloadPng, renderTierListPng } from "@/lib/image-export";
+import { dataUrlToBlob, labelFromFileName } from "@/lib/item-image-upload";
+import {
+  canCopyItemImage,
+  isDataImageUrl,
+  isWebImageUrl,
+  ITEM_IMAGE_ACCEPT,
+} from "@/lib/item-images";
 import {
   createId,
   DEFAULT_ITEM_IMAGE_ASPECT_RATIO,
@@ -37,6 +48,7 @@ import {
   TierItem,
 } from "@/lib/tier-list";
 import { useMobilePerformanceMode } from "@/lib/use-mobile-performance-mode";
+import { type ItemImageStatus, useItemImages } from "@/lib/use-item-images";
 import type { UseTierListResult } from "@/lib/use-tier-lists";
 import { useViewTransitionsEnabled } from "@/lib/view-transitions";
 import { TierListPreview } from "./TierListPreview";
@@ -109,6 +121,19 @@ export function TierListEditor({
     useState<HTMLElement | null>(null);
   const [topbarActionSlot, setTopbarActionSlot] = useState<HTMLElement | null>(null);
   const sortedItems = useMemo(() => sortItemsByTier(items, tiers), [items, tiers]);
+  const itemImages = useItemImages(setItems);
+  const canAddImages = syncMode === "cloud" && itemImages.canAddImages;
+  const itemImageInputRef = useRef<HTMLInputElement>(null);
+  const newItemImagesInputRef = useRef<HTMLInputElement>(null);
+  const itemImageUploadTarget = useRef<string | null>(null);
+  const copyableImageItems = items.filter(
+    (item): item is TierItem & { imageUrl: string } =>
+      canCopyItemImage(item.imageUrl) &&
+      itemImages.statuses[item.id]?.state !== "copying",
+  );
+  const isCopyingImages = Object.values(itemImages.statuses).some(
+    (status) => status.state === "copying",
+  );
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
@@ -462,9 +487,66 @@ export function TierListEditor({
   }
 
   function removeItem(itemId: string) {
+    itemImages.clearStatus(itemId);
     updateWithOptionalTransition(() => {
       setItems((current) => current.filter((item) => item.id !== itemId));
     });
+  }
+
+  function addItemsFromImages(files: File[]) {
+    if (files.length === 0) return;
+
+    const newItems = files.map((file) => ({
+      id: createId("item"),
+      label: labelFromFileName(file.name),
+    }));
+    updateWithOptionalTransition(() => {
+      setItems((current) => [...current, ...newItems]);
+    });
+    void itemImages.uploadImages(
+      newItems.map((item, index) => ({ itemId: item.id, file: files[index] })),
+    );
+  }
+
+  function chooseItemImage(itemId: string) {
+    itemImageUploadTarget.current = itemId;
+    itemImageInputRef.current?.click();
+  }
+
+  function updateItemImageUrl(itemId: string, imageUrl: string | undefined) {
+    itemImages.clearStatus(itemId);
+    setItems((current) =>
+      current.map((item) => (item.id === itemId ? { ...item, imageUrl } : item)),
+    );
+  }
+
+  // Pasted images upload, and pasted links are copied right away so the item
+  // keeps its image if the original site moves or blocks it.
+  function pasteItemImage(event: ClipboardEvent<HTMLInputElement>, itemId: string) {
+    if (!canAddImages) return;
+
+    const file = Array.from(event.clipboardData.files).find((candidate) =>
+      candidate.type.startsWith("image/"),
+    );
+    if (file) {
+      event.preventDefault();
+      void itemImages.uploadImage(itemId, file);
+      return;
+    }
+
+    const text = event.clipboardData.getData("text").trim();
+    if (isDataImageUrl(text)) {
+      // Inline images can be megabytes long, so they never touch the list.
+      event.preventDefault();
+      void itemImages.uploadImage(itemId, dataUrlToBlob(text));
+      return;
+    }
+
+    if (isWebImageUrl(text)) {
+      event.preventDefault();
+      updateItemImageUrl(itemId, text);
+      void itemImages.copyImage(itemId, text);
+    }
   }
 
   if (list === undefined) {
@@ -714,21 +796,30 @@ export function TierListEditor({
                       <input
                         className="input"
                         aria-label={`${item.label} image URL`}
-                        placeholder="Image URL"
+                        placeholder={
+                          canAddImages ? "Image URL or paste image" : "Image URL"
+                        }
                         value={item.imageUrl ?? ""}
                         onChange={(event) =>
-                          setItems((current) =>
-                            current.map((candidate) =>
-                              candidate.id === item.id
-                                ? {
-                                    ...candidate,
-                                    imageUrl: event.target.value.trim() || undefined,
-                                  }
-                                : candidate,
-                            ),
+                          updateItemImageUrl(
+                            item.id,
+                            event.target.value.trim() || undefined,
                           )
                         }
+                        onPaste={(event) => pasteItemImage(event, item.id)}
                       />
+                      {canAddImages ? (
+                        <button
+                          aria-label={`Upload image for ${item.label || "item"}`}
+                          className="button icon"
+                          disabled={itemImages.statuses[item.id]?.state === "uploading"}
+                          onClick={() => chooseItemImage(item.id)}
+                          title="Upload image"
+                          type="button"
+                        >
+                          <ImageUp size={16} />
+                        </button>
+                      ) : null}
                       <button
                         className="button icon"
                         onClick={() => removeItem(item.id)}
@@ -737,12 +828,73 @@ export function TierListEditor({
                         <Trash2 size={16} />
                       </button>
                     </div>
+                    {itemImages.statuses[item.id] ? (
+                      <ItemImageStatusMessage status={itemImages.statuses[item.id]} />
+                    ) : null}
                   </div>
                 ))}
               </div>
-              <button className="button" onClick={addItem} type="button">
-                <Plus size={16} /> Add item
-              </button>
+              <div className="item-actions">
+                <button className="button" onClick={addItem} type="button">
+                  <Plus size={16} /> Add item
+                </button>
+                {canAddImages ? (
+                  <button
+                    className="button"
+                    onClick={() => newItemImagesInputRef.current?.click()}
+                    title="Add an item for each image you choose"
+                    type="button"
+                  >
+                    <ImagePlus size={16} /> Add images
+                  </button>
+                ) : null}
+                {canAddImages && (copyableImageItems.length > 0 || isCopyingImages) ? (
+                  <button
+                    className="button"
+                    disabled={isCopyingImages}
+                    onClick={() => void itemImages.copyImages(copyableImageItems)}
+                    title="Keep copies of linked images so they don't break and always export"
+                    type="button"
+                  >
+                    <ImageDown size={16} />
+                    {isCopyingImages
+                      ? "Saving linked images"
+                      : `Save ${copyableImageItems.length} linked ${
+                          copyableImageItems.length === 1 ? "image" : "images"
+                        }`}
+                  </button>
+                ) : null}
+              </div>
+              {syncMode === "local" ? (
+                <p className="muted item-images-hint">
+                  <Link to="/sign-in">Sign in</Link> to upload images and keep copies of
+                  linked ones.
+                </p>
+              ) : null}
+              <input
+                accept={ITEM_IMAGE_ACCEPT}
+                hidden
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  const itemId = itemImageUploadTarget.current;
+                  event.target.value = "";
+                  if (file && itemId) void itemImages.uploadImage(itemId, file);
+                }}
+                ref={itemImageInputRef}
+                type="file"
+              />
+              <input
+                accept={ITEM_IMAGE_ACCEPT}
+                hidden
+                multiple
+                onChange={(event) => {
+                  const files = Array.from(event.target.files ?? []);
+                  event.target.value = "";
+                  addItemsFromImages(files);
+                }}
+                ref={newItemImagesInputRef}
+                type="file"
+              />
             </div>
 
             <div className="form-row">
@@ -828,6 +980,25 @@ export function TierListEditor({
         </div>
       </div>
     </>
+  );
+}
+
+function ItemImageStatusMessage({ status }: { status: ItemImageStatus }) {
+  if (status.state === "error") {
+    return (
+      <p className="item-image-status is-error" role="status">
+        {status.message}
+      </p>
+    );
+  }
+
+  return (
+    <p className="item-image-status" role="status">
+      <Loader2 size={14} />
+      {status.state === "uploading"
+        ? "Uploading image"
+        : "Saving a copy of the linked image"}
+    </p>
   );
 }
 

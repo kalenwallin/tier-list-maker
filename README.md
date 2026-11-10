@@ -9,6 +9,7 @@ Lists are synced between devices with Convex.
 - React canary view transitions for route, shared-element, and editor animations
   (opt-in on desktop, off on mobile)
 - Convex for synced tier list storage
+- Cloudflare R2 for item images people upload or copy from links
 - Convex Auth for authentication, with email codes and passwords sent through
   Resend
 - `html-to-image` for PNG exports
@@ -79,6 +80,42 @@ Runtime variables added in the Cloudflare dashboard are preserved on deploy by
 `keep_vars` in `wrangler.jsonc`. Encrypted runtime secrets are preserved by
 Wrangler independently and should continue to be managed with `wrangler secret`
 or the dashboard.
+
+## Item images
+
+Signed-in people can upload item images, paste an image into an item's image
+field, or add a batch of images that each become an item. A pasted image link
+is copied right away, and **Save linked images** copies the links already in a
+list. Copies keep working after the original site moves or blocks the image,
+and they appear in PNG exports, which leave out images from sites that block
+cross-origin loading.
+
+Images live in the `tier-list-maker-item-images` R2 bucket. The Worker stores
+them through `POST /api/images` and serves them from `/images/<sha256>.<ext>`
+with a one-year immutable cache. Items store that path without an origin, so a
+list works on every host that serves the app. R2 is included in the Workers
+plan up to 10 GB-month of storage, 1 million writes, and 10 million reads a
+month, with no egress fees.
+
+Create the bucket once before deploying:
+
+```bash
+bunx wrangler r2 bucket create tier-list-maker-item-images
+```
+
+`bun run dev` keeps images in a local R2 simulation under `.wrangler/state`.
+
+Uploads are limited to signed-in accounts with a verified email, which Convex
+checks from the session token the browser sends. Each account may add about 60
+images a minute through the `ITEM_IMAGE_RATE_LIMITER` binding, and the browser
+waits and retries when a large batch reaches that limit. Images can be PNG,
+JPEG, GIF, WebP, or AVIF up to 10 MB, checked by their contents rather than
+their file name. The browser shrinks uploads to 1024 px on the long edge and
+re-encodes JPEGs, which also drops camera metadata such as location.
+
+Stored images are never deleted, because the same image may be used in several
+lists. Each object records the uploader's email, and the source link for
+copies, in its R2 custom metadata.
 
 ## Authentication
 
