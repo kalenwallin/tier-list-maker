@@ -1,3 +1,4 @@
+import { isDataImageUrl, ITEM_IMAGE_KEY_PATTERN } from "./item-images";
 import {
   DEFAULT_ITEM_IMAGE_ASPECT_RATIO,
   DEFAULT_TIERS,
@@ -27,6 +28,14 @@ export type LocalDataBackup = {
   version: 1;
   exportedAt: string;
   lists: StoredTierList[];
+  // Images signed-out lists keep in the browser, as data URLs by key, so the
+  // backup restores them. Items refer to them as `local-image:<key>`.
+  images?: Record<string, string>;
+};
+
+export type ParsedBackup = {
+  lists: StoredTierList[];
+  images: Record<string, string>;
 };
 
 export type NewTierList = Omit<StoredTierList, "id">;
@@ -44,21 +53,29 @@ export function createBlankTierList(title = "New tier list"): NewTierList {
   };
 }
 
-export function createBackup(lists: StoredTierList[]): LocalDataBackup {
+export function createBackup(
+  lists: StoredTierList[],
+  images: Record<string, string> = {},
+): LocalDataBackup {
   return {
     app: "tier-list-maker",
     version: 1,
     exportedAt: new Date().toISOString(),
     lists,
+    ...(Object.keys(images).length > 0 ? { images } : {}),
   };
 }
 
 export function parseBackupContents(contents: string) {
+  return parseBackupFile(contents).lists;
+}
+
+export function parseBackupFile(contents: string): ParsedBackup {
   const parsed = JSON.parse(contents) as unknown;
   return parseBackup(parsed);
 }
 
-function parseBackup(value: unknown): StoredTierList[] {
+function parseBackup(value: unknown): ParsedBackup {
   if (!isRecord(value)) {
     throw new Error("Backup file is not valid JSON data.");
   }
@@ -71,7 +88,27 @@ function parseBackup(value: unknown): StoredTierList[] {
     throw new Error("Backup file does not contain tier lists.");
   }
 
-  return value.lists.map(parseTierList);
+  return {
+    lists: value.lists.map(parseTierList),
+    images: parseImages(value.images),
+  };
+}
+
+// Leaves out anything that isn't an image, which the import would skip anyway.
+function parseImages(value: unknown) {
+  const images: Record<string, string> = {};
+  if (!isRecord(value)) return images;
+
+  for (const [key, dataUrl] of Object.entries(value)) {
+    if (
+      ITEM_IMAGE_KEY_PATTERN.test(key) &&
+      typeof dataUrl === "string" &&
+      isDataImageUrl(dataUrl)
+    ) {
+      images[key] = dataUrl;
+    }
+  }
+  return images;
 }
 
 function parseTierList(value: unknown): StoredTierList {

@@ -12,6 +12,7 @@ import {
 } from "react";
 import { getSiteUrl } from "@/lib/site-url";
 import { ItemImageAspectRatio, Tier, TierItem } from "@/lib/tier-list";
+import { ItemImage } from "./ItemImage";
 
 type Props = {
   title?: string;
@@ -365,11 +366,7 @@ function Tile({
       title={item.label}
     >
       <div className="tile-media">
-        {item.imageUrl ? (
-          <img alt="" draggable={false} src={item.imageUrl} />
-        ) : (
-          item.label.slice(0, 1).toUpperCase()
-        )}
+        <ItemImage draggable={false} imageUrl={item.imageUrl} label={item.label} />
       </div>
       <div className="tile-label">{item.label}</div>
     </article>

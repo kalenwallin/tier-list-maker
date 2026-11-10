@@ -1,6 +1,12 @@
 "use client";
 
-import { createBlankTierList, parseBackupContents, StoredTierList } from "./db";
+import {
+  createBlankTierList,
+  parseBackupContents,
+  parseBackupFile,
+  StoredTierList,
+} from "./db";
+import { importLocalItemImages, pruneLocalItemImages } from "./local-item-images";
 import { createId } from "./tier-list";
 
 const STORAGE_KEY = "tier-list-maker:lists:v1";
@@ -58,11 +64,17 @@ export function updateLocalTierList(
 
 export function removeLocalTierList(id: string) {
   writeLocalTierLists(readLocalTierLists().filter((list) => list.id !== id));
+  void pruneUnusedLocalItemImages();
 }
 
-export function importLocalTierLists(contents: string) {
-  const parsedLists = parseBackupContents(contents);
-  const importedLists = parsedLists.map(
+// Removes images in this browser that no signed-out list uses anymore.
+export function pruneUnusedLocalItemImages() {
+  return pruneLocalItemImages(readLocalTierLists());
+}
+
+export async function importLocalTierLists(contents: string) {
+  const { lists: parsedLists, images } = parseBackupFile(contents);
+  const listsWithNewIds = parsedLists.map(
     ({
       ownerEmail: _ownerEmail,
       localId: _localId,
@@ -74,6 +86,7 @@ export function importLocalTierLists(contents: string) {
       updatedAt: Date.now(),
     }),
   );
+  const importedLists = await importLocalItemImages(listsWithNewIds, images);
 
   writeLocalTierLists([...importedLists, ...readLocalTierLists()]);
   return importedLists.length;

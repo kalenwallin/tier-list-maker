@@ -1,12 +1,13 @@
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
 import {
+  createItemImageKey,
+  detectItemImageType,
   getHostedItemImageKey,
-  ITEM_IMAGE_EXTENSIONS,
   ITEM_IMAGE_KEY_PATTERN,
   ITEM_IMAGE_PATH_PREFIX,
-  ItemImageContentType,
   MAX_ITEM_IMAGE_BYTES,
+  UNSUPPORTED_ITEM_IMAGE_MESSAGE,
 } from "./item-images";
 import { getPublicEnv } from "./site-url";
 
@@ -101,11 +102,11 @@ export async function handleItemImagePost(
         415,
         isLink
           ? "That link isn't a PNG, JPEG, GIF, WebP, or AVIF image."
-          : "Use a PNG, JPEG, GIF, WebP, or AVIF image.",
+          : UNSUPPORTED_ITEM_IMAGE_MESSAGE,
       );
     }
 
-    const key = `${await sha256Hex(image.bytes)}.${ITEM_IMAGE_EXTENSIONS[contentType]}`;
+    const key = await createItemImageKey(image.bytes, contentType);
     // Skipping a write for an image that is already stored saves an R2 write
     // and keeps the first uploader on record.
     if (!(await bucket.head(key))) {
@@ -178,21 +179,6 @@ export async function getItemImageUploader(request: Request) {
     // Expired and invalid tokens fail the query, so treat them as signed out.
     return null;
   }
-}
-
-export function detectItemImageType(bytes: Uint8Array): ItemImageContentType | null {
-  if (bytes.length < 12) return null;
-
-  if (hasBytes(bytes, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) {
-    return "image/png";
-  }
-  if (hasBytes(bytes, [0xff, 0xd8, 0xff])) return "image/jpeg";
-
-  const header = readAscii(bytes, 0, 12);
-  if (header.startsWith("GIF87a") || header.startsWith("GIF89a")) return "image/gif";
-  if (header.startsWith("RIFF") && header.slice(8, 12) === "WEBP") return "image/webp";
-  if (header.slice(4, 8) === "ftyp" && hasAvifBrand(bytes)) return "image/avif";
-  return null;
 }
 
 // Rejects links that point at the machine running the Worker or its network.
@@ -352,42 +338,10 @@ async function readBytes(
   return bytes;
 }
 
-async function sha256Hex(bytes: Uint8Array<ArrayBuffer>) {
-  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
-  return Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
 function itemImageResponse(key: string) {
   return Response.json({ url: `${ITEM_IMAGE_PATH_PREFIX}${key}` });
 }
 
 function notFound() {
   return new Response("Not found", { status: 404 });
-}
-
-function hasBytes(bytes: Uint8Array, signature: number[]) {
-  return signature.every((byte, index) => bytes[index] === byte);
-}
-
-function readAscii(bytes: Uint8Array, start: number, end: number) {
-  return String.fromCharCode(...bytes.subarray(start, end));
-}
-
-// AVIF files are ISO media files whose `ftyp` box names `avif` (still) or
-// `avis` (animated) as the major brand or a compatible brand.
-function hasAvifBrand(bytes: Uint8Array) {
-  const boxSize = new DataView(
-    bytes.buffer,
-    bytes.byteOffset,
-    bytes.byteLength,
-  ).getUint32(0);
-  const end = Math.min(boxSize, bytes.length, 64);
-
-  for (let offset = 8; offset + 4 <= end; offset += 4) {
-    // Bytes 12-16 hold the minor version, not a brand.
-    if (offset === 12) continue;
-    const brand = readAscii(bytes, offset, offset + 4);
-    if (brand === "avif" || brand === "avis") return true;
-  }
-  return false;
 }

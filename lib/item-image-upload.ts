@@ -10,9 +10,16 @@ const ENCODE_QUALITY = 0.86;
 // large batch of images can hit.
 const RATE_LIMIT_RETRY_DELAYS_MS = [5_000, 15_000, 30_000];
 
+const MAX_PARALLEL_REQUESTS = 3;
+
 // Resolves to the stored image's path, ready to use as an item's imageUrl.
 export async function uploadItemImage(file: Blob, authToken: string | null) {
-  const image = await prepareImageForUpload(file);
+  return await uploadPreparedItemImage(await prepareImageForUpload(file), authToken);
+}
+
+// For images that already went through prepareImageForUpload, such as ones
+// kept in this browser before signing in, so they aren't re-encoded again.
+export async function uploadPreparedItemImage(image: Blob, authToken: string | null) {
   return await postItemImage(authToken, {
     body: image,
     contentType: image.type || "application/octet-stream",
@@ -81,10 +88,26 @@ async function postItemImage(
   }
 }
 
+// Runs `run` for each entry, a few at a time.
+export async function runWithLimit<T>(entries: T[], run: (entry: T) => Promise<void>) {
+  let nextIndex = 0;
+  const workers = Array.from(
+    { length: Math.min(MAX_PARALLEL_REQUESTS, entries.length) },
+    async () => {
+      while (nextIndex < entries.length) {
+        const entry = entries[nextIndex];
+        nextIndex += 1;
+        await run(entry);
+      }
+    },
+  );
+  await Promise.all(workers);
+}
+
 // Shrinks large images and re-encodes JPEGs, which also drops camera metadata
-// such as location. Anything the browser can't redraw goes up unchanged for
-// the server to accept or reject.
-async function prepareImageForUpload(file: Blob): Promise<Blob> {
+// such as location. Anything the browser can't redraw is left unchanged for
+// the server, or the local image store, to accept or reject.
+export async function prepareImageForUpload(file: Blob): Promise<Blob> {
   // Redrawing keeps only the first frame of an animated GIF.
   if (file.type === "image/gif") return file;
 

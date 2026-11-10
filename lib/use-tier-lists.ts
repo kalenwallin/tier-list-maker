@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuthToken } from "@convex-dev/auth/react";
 import {
   useConvex,
   useConvexAuth,
@@ -8,21 +9,27 @@ import {
   useQuery,
 } from "convex/react";
 import type { PaginationResult } from "convex/server";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import {
   createBackup,
   createBlankTierList,
   LocalDataBackup,
-  parseBackupContents,
+  parseBackupFile,
   StoredTierList,
 } from "./db";
+import {
+  exportLocalItemImages,
+  importLocalItemImages,
+  uploadLocalItemImages,
+} from "./local-item-images";
 import {
   clearLocalTierLists,
   createLocalTierList,
   importLocalTierLists,
   isLocalTierListId,
+  pruneUnusedLocalItemImages,
   readLocalTierLists,
   removeLocalTierList,
   updateLocalTierList,
@@ -67,6 +74,7 @@ export type UseTierListResult = {
 
 export function useTierLists(): UseTierListsResult {
   const { ownerEmail, authLoading } = useAuthState();
+  const authToken = useAuthToken();
   const { localLists, localLoading, isMigratingLocalData } =
     useLocalListsMigration(ownerEmail);
   const convex = useConvex();
@@ -134,7 +142,8 @@ export function useTierLists(): UseTierListsResult {
 
   async function exportData() {
     if (!ownerEmail) {
-      return createBackup(lists ?? []);
+      const localLists = lists ?? [];
+      return createBackup(localLists, await exportLocalItemImages(localLists));
     }
 
     const allLists: ConvexTierList[] = [];
@@ -159,7 +168,13 @@ export function useTierLists(): UseTierListsResult {
       return importLocalTierLists(contents);
     }
 
-    const parsedLists = parseBackupContents(contents);
+    // Images the backup carries go up with the lists, so they work everywhere
+    // the lists do.
+    const backup = parseBackupFile(contents);
+    const parsedLists = await uploadLocalItemImages(
+      await importLocalItemImages(backup.lists, backup.images),
+      authToken,
+    );
     return await importTierLists({
       lists: parsedLists.map(
         ({
@@ -342,6 +357,13 @@ function useLocalListsMigration(ownerEmail: string | undefined) {
   const [localLoading, setLocalLoading] = useState(true);
   const [isMigratingLocalData, setIsMigratingLocalData] = useState(false);
   const syncLocalLists = useMutation(api.tierLists.syncLocalLists);
+  // Read when a migration starts, so a refreshed token doesn't restart one.
+  const authToken = useAuthToken();
+  const authTokenRef = useRef(authToken);
+
+  useEffect(() => {
+    authTokenRef.current = authToken;
+  }, [authToken]);
 
   useEffect(() => {
     function refreshLocalLists() {
@@ -350,6 +372,8 @@ function useLocalListsMigration(ownerEmail: string | undefined) {
     }
 
     refreshLocalLists();
+    // Images a list stopped using stay in the browser until a later visit.
+    if (readLocalTierLists().length > 0) void pruneUnusedLocalItemImages();
     window.addEventListener("storage", refreshLocalLists);
     window.addEventListener("tier-list-maker:local-lists-changed", refreshLocalLists);
 
@@ -369,8 +393,11 @@ function useLocalListsMigration(ownerEmail: string | undefined) {
     async function migrate() {
       setIsMigratingLocalData(true);
       try {
+        // Images kept in this browser only work here, so they're uploaded
+        // first. If that fails, the lists stay local and move on a later visit.
+        const lists = await uploadLocalItemImages(localLists, authTokenRef.current);
         await syncLocalLists({
-          lists: localLists.map(
+          lists: lists.map(
             ({
               id,
               ownerEmail: _ownerEmail,
@@ -386,7 +413,10 @@ function useLocalListsMigration(ownerEmail: string | undefined) {
         if (!cancelled) {
           clearLocalTierLists();
           setLocalLists([]);
+          void pruneUnusedLocalItemImages();
         }
+      } catch (error) {
+        console.error("Couldn't move local tier lists into cloud sync", error);
       } finally {
         if (!cancelled) setIsMigratingLocalData(false);
       }

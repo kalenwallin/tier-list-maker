@@ -43,6 +43,7 @@ import {
 import { useMobilePerformanceMode } from "@/lib/use-mobile-performance-mode";
 import { useTierLists } from "@/lib/use-tier-lists";
 import { useViewTransitionsEnabled } from "@/lib/view-transitions";
+import { ItemImage } from "./ItemImage";
 import { TierListPreview } from "./TierListPreview";
 
 const DASHBOARD_PREFERENCES_KEY = "tier-list-maker-dashboard-preferences-v1";
@@ -1010,11 +1011,7 @@ export function DashboardClient() {
                                   key={item.id}
                                   title={item.label}
                                 >
-                                  {item.imageUrl ? (
-                                    <img alt="" src={item.imageUrl} />
-                                  ) : (
-                                    item.label.slice(0, 1).toUpperCase()
-                                  )}
+                                  <ItemImage imageUrl={item.imageUrl} label={item.label} />
                                 </div>
                               ))}
                           </div>
@@ -1027,11 +1024,7 @@ export function DashboardClient() {
                             key={item.id}
                             title={item.label}
                           >
-                            {item.imageUrl ? (
-                              <img alt="" src={item.imageUrl} />
-                            ) : (
-                              item.label.slice(0, 1).toUpperCase()
-                            )}
+                            <ItemImage imageUrl={item.imageUrl} label={item.label} />
                           </div>
                         ))}
                       </div>

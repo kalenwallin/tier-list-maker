@@ -31,12 +31,7 @@ import { promoteDashboardSnapshotList } from "@/lib/dashboard-snapshot";
 import { StoredTierList } from "@/lib/db";
 import { copyPngToClipboard, downloadPng, renderTierListPng } from "@/lib/image-export";
 import { dataUrlToBlob, labelFromFileName } from "@/lib/item-image-upload";
-import {
-  canCopyItemImage,
-  isDataImageUrl,
-  isWebImageUrl,
-  ITEM_IMAGE_ACCEPT,
-} from "@/lib/item-images";
+import { isDataImageUrl, isWebImageUrl, ITEM_IMAGE_ACCEPT } from "@/lib/item-images";
 import {
   createId,
   DEFAULT_ITEM_IMAGE_ASPECT_RATIO,
@@ -121,14 +116,14 @@ export function TierListEditor({
     useState<HTMLElement | null>(null);
   const [topbarActionSlot, setTopbarActionSlot] = useState<HTMLElement | null>(null);
   const sortedItems = useMemo(() => sortItemsByTier(items, tiers), [items, tiers]);
-  const itemImages = useItemImages(setItems);
-  const canAddImages = syncMode === "cloud" && itemImages.canAddImages;
+  const itemImages = useItemImages(setItems, syncMode);
+  const canAddImages = itemImages.canAddImages;
   const itemImageInputRef = useRef<HTMLInputElement>(null);
   const newItemImagesInputRef = useRef<HTMLInputElement>(null);
   const itemImageUploadTarget = useRef<string | null>(null);
   const copyableImageItems = items.filter(
     (item): item is TierItem & { imageUrl: string } =>
-      canCopyItemImage(item.imageUrl) &&
+      itemImages.canCopy(item.imageUrl) &&
       itemImages.statuses[item.id]?.state !== "copying",
   );
   const isCopyingImages = Object.values(itemImages.statuses).some(
@@ -542,7 +537,7 @@ export function TierListEditor({
       return;
     }
 
-    if (isWebImageUrl(text)) {
+    if (isWebImageUrl(text) && itemImages.canCopy(text)) {
       event.preventDefault();
       updateItemImageUrl(itemId, text);
       void itemImages.copyImage(itemId, text);
@@ -812,7 +807,7 @@ export function TierListEditor({
                         <button
                           aria-label={`Upload image for ${item.label || "item"}`}
                           className="button icon"
-                          disabled={itemImages.statuses[item.id]?.state === "uploading"}
+                          disabled={isAddingItemImage(itemImages.statuses[item.id])}
                           onClick={() => chooseItemImage(item.id)}
                           title="Upload image"
                           type="button"
@@ -867,8 +862,9 @@ export function TierListEditor({
               </div>
               {syncMode === "local" ? (
                 <p className="muted item-images-hint">
-                  <Link to="/sign-in">Sign in</Link> to upload images and keep copies of
-                  linked ones.
+                  Images you add are kept in this browser.{" "}
+                  <Link to="/sign-in">Sign in</Link> to sync them and keep copies of
+                  linked images.
                 </p>
               ) : null}
               <input
@@ -983,6 +979,10 @@ export function TierListEditor({
   );
 }
 
+function isAddingItemImage(status: ItemImageStatus | undefined) {
+  return status?.state === "uploading" || status?.state === "saving";
+}
+
 function ItemImageStatusMessage({ status }: { status: ItemImageStatus }) {
   if (status.state === "error") {
     return (
@@ -997,7 +997,9 @@ function ItemImageStatusMessage({ status }: { status: ItemImageStatus }) {
       <Loader2 size={14} />
       {status.state === "uploading"
         ? "Uploading image"
-        : "Saving a copy of the linked image"}
+        : status.state === "saving"
+          ? "Saving image"
+          : "Saving a copy of the linked image"}
     </p>
   );
 }
