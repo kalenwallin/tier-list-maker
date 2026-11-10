@@ -2,12 +2,7 @@
 
 import { useAuthToken } from "@convex-dev/auth/react";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import {
-  copyItemImage,
-  dataUrlToBlob,
-  runWithLimit,
-  uploadItemImage,
-} from "./item-image-upload";
+import { copyItemImage, dataUrlToBlob, uploadItemImage } from "./item-image-upload";
 import { canCopyItemImage, isDataImageUrl } from "./item-images";
 import { preloadLocalItemImages, saveLocalItemImage } from "./local-item-images";
 import type { TierItem } from "./tier-list";
@@ -103,11 +98,7 @@ export function useItemImages(
     statuses,
     clearStatus: (itemId: string) => setStatus(itemId),
     uploadImage,
-    uploadImages: (uploads: { itemId: string; file: Blob }[]) =>
-      runWithLimit(uploads, ({ itemId, file }) => uploadImage(itemId, file)),
     copyImage,
-    copyImages: (items: { id: string; imageUrl: string }[]) =>
-      runWithLimit(items, ({ id, imageUrl }) => copyImage(id, imageUrl)),
   };
 }
 

@@ -44,14 +44,6 @@ export async function dataUrlToBlob(dataUrl: string) {
   return await response.blob();
 }
 
-export function labelFromFileName(fileName: string) {
-  return fileName
-    .replace(/\.[^.]+$/, "")
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 async function postItemImage(
   authToken: string | null,
   { body, contentType }: { body: BodyInit; contentType: string },

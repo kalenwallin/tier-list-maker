@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronUp, StickyNote } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, StickyNote } from "lucide-react";
 import {
   DragEvent,
   RefObject,
@@ -30,6 +30,8 @@ type Props = {
   onDragStart?: (itemId: string) => void;
   // Makes items open on click or Enter, such as into a detail dialog.
   onOpenItem?: (itemId: string) => void;
+  // Ends the item tray with an "Add item" tile.
+  onAddItem?: () => void;
   exportRef?: RefObject<HTMLDivElement | null>;
   expandableHeader?: boolean;
   isExporting?: boolean;
@@ -48,6 +50,7 @@ export function TierListPreview({
   onDropItem,
   onDragStart,
   onOpenItem,
+  onAddItem,
   exportRef,
   expandableHeader = false,
   isExporting = false,
@@ -250,9 +253,6 @@ export function TierListPreview({
                 : undefined
             }
           >
-            {unranked.length === 0 ? (
-              <span className="item-tray-empty">Drop items here to unrank them</span>
-            ) : null}
             {unranked.map((item) => (
               <AnimatedTile
                 draggable={draggable}
@@ -264,6 +264,24 @@ export function TierListPreview({
                 transitionNamespace={transitionNamespace}
               />
             ))}
+            {onAddItem ? (
+              // Named so it slides along when the tiles before it move.
+              <ViewTransition
+                default="none"
+                name={`tier-item-add-${transitionNamespace}`}
+                update={{ "mode-change": "none", default: "auto" }}
+              >
+                <button className="tile tile-add" onClick={onAddItem} type="button">
+                  <span className="tile-media">
+                    <Plus aria-hidden="true" size={26} strokeWidth={2.75} />
+                  </span>
+                  <span className="tile-label">Add item</span>
+                </button>
+              </ViewTransition>
+            ) : null}
+            {unranked.length === 0 ? (
+              <span className="item-tray-empty">Drop items here to unrank them</span>
+            ) : null}
           </section>
         </div>
       ) : null}

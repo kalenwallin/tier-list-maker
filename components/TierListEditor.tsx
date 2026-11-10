@@ -6,8 +6,6 @@ import {
   Copy,
   Download,
   Eye,
-  ImageDown,
-  ImagePlus,
   Loader2,
   Pencil,
   Plus,
@@ -28,8 +26,8 @@ import { createPortal, flushSync } from "react-dom";
 import { promoteDashboardSnapshotList } from "@/lib/dashboard-snapshot";
 import { StoredTierList } from "@/lib/db";
 import { copyPngToClipboard, downloadPng, renderTierListPng } from "@/lib/image-export";
-import { dataUrlToBlob, labelFromFileName } from "@/lib/item-image-upload";
-import { isDataImageUrl, isWebImageUrl, ITEM_IMAGE_ACCEPT } from "@/lib/item-images";
+import { dataUrlToBlob } from "@/lib/item-image-upload";
+import { isDataImageUrl, isWebImageUrl } from "@/lib/item-images";
 import {
   createId,
   DEFAULT_ITEM_IMAGE_ASPECT_RATIO,
@@ -40,14 +38,10 @@ import {
   TierItem,
 } from "@/lib/tier-list";
 import { useMobilePerformanceMode } from "@/lib/use-mobile-performance-mode";
-import { type ItemImageStatus, useItemImages } from "@/lib/use-item-images";
+import { useItemImages } from "@/lib/use-item-images";
 import type { UseTierListResult } from "@/lib/use-tier-lists";
 import { useViewTransitionsEnabled } from "@/lib/view-transitions";
-import {
-  type ItemDetailEditor,
-  ItemDetailDialog,
-  ItemImageStatusMessage,
-} from "./ItemDetailDialog";
+import { type ItemDetailEditor, ItemDetailDialog } from "./ItemDetailDialog";
 import { TierListPreview } from "./TierListPreview";
 
 export function TierListEditor({
@@ -120,15 +114,6 @@ export function TierListEditor({
   const [topbarActionSlot, setTopbarActionSlot] = useState<HTMLElement | null>(null);
   const itemImages = useItemImages(setItems, syncMode);
   const canAddImages = itemImages.canAddImages;
-  const newItemImagesInputRef = useRef<HTMLInputElement>(null);
-  const copyableImageItems = items.filter(
-    (item): item is TierItem & { imageUrl: string } =>
-      itemImages.canCopy(item.imageUrl) &&
-      itemImages.statuses[item.id]?.state !== "copying",
-  );
-  const isCopyingImages = Object.values(itemImages.statuses).some(
-    (status) => status.state === "copying",
-  );
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
@@ -504,21 +489,6 @@ export function TierListEditor({
     });
   }
 
-  function addItemsFromImages(files: File[]) {
-    if (files.length === 0) return;
-
-    const newItems = files.map((file) => ({
-      id: createId("item"),
-      label: labelFromFileName(file.name),
-    }));
-    updateWithOptionalTransition(() => {
-      setItems((current) => [...current, ...newItems]);
-    });
-    void itemImages.uploadImages(
-      newItems.map((item, index) => ({ itemId: item.id, file: files[index] })),
-    );
-  }
-
   function updateItemImageUrl(itemId: string, imageUrl: string | undefined) {
     itemImages.clearStatus(itemId);
     setItems((current) =>
@@ -803,68 +773,6 @@ export function TierListEditor({
             </label>
 
             <div className="form-row">
-              <span className="label">Items</span>
-              <p className="muted item-editor-hint">
-                Click an item to edit its name, description, and image.
-              </p>
-              <div className="item-actions">
-                <button className="button" onClick={addItem} type="button">
-                  <Plus size={16} /> Add item
-                </button>
-                {canAddImages ? (
-                  <button
-                    className="button"
-                    onClick={() => newItemImagesInputRef.current?.click()}
-                    title="Add an item for each image you choose"
-                    type="button"
-                  >
-                    <ImagePlus size={16} /> Add images
-                  </button>
-                ) : null}
-                {canAddImages && (copyableImageItems.length > 0 || isCopyingImages) ? (
-                  <button
-                    className="button"
-                    disabled={isCopyingImages}
-                    onClick={() => void itemImages.copyImages(copyableImageItems)}
-                    title="Keep copies of linked images so they don't break and always export"
-                    type="button"
-                  >
-                    <ImageDown size={16} />
-                    {isCopyingImages
-                      ? "Saving linked images"
-                      : `Save ${copyableImageItems.length} linked ${
-                          copyableImageItems.length === 1 ? "image" : "images"
-                        }`}
-                  </button>
-                ) : null}
-              </div>
-              <ItemImageStatusSummary
-                items={items}
-                onOpenItem={setOpenItemId}
-                statuses={itemImages.statuses}
-              />
-              {syncMode === "local" ? (
-                <p className="muted item-images-hint">
-                  Images you add are kept in this browser.{" "}
-                  <Link to="/sign-in">Sign in</Link> to sync them and keep copies of
-                  linked images.
-                </p>
-              ) : null}
-              <input
-                accept={ITEM_IMAGE_ACCEPT}
-                hidden
-                multiple
-                onChange={(event) => {
-                  const files = Array.from(event.target.files ?? []);
-                  event.target.value = "";
-                  addItemsFromImages(files);
-                }}
-                ref={newItemImagesInputRef}
-                type="file"
-              />
-            </div>
-
-            <div className="form-row">
               <span className="label">Tiers</span>
               <div className="small-list">
                 {tiers.map((tier) => (
@@ -927,6 +835,7 @@ export function TierListEditor({
                 itemImageAspectRatio={previewItemImageAspectRatio}
                 items={previewItems}
                 keepEmptyTray={keepEmptyTrayDuringModeChange}
+                onAddItem={isPreviewMode ? undefined : addItem}
                 onDragStart={(itemId) => {
                   draggedItemId.current = itemId;
                 }}
@@ -949,53 +858,6 @@ export function TierListEditor({
         </div>
       </div>
     </>
-  );
-}
-
-// Images added from the sidebar upload in the background, so their progress
-// and any failures show here; each item's dialog has the details.
-function ItemImageStatusSummary({
-  items,
-  onOpenItem,
-  statuses,
-}: {
-  items: TierItem[];
-  onOpenItem: (itemId: string) => void;
-  statuses: Record<string, ItemImageStatus>;
-}) {
-  const addingCount = Object.values(statuses).filter(
-    (status) => status.state === "uploading" || status.state === "saving",
-  ).length;
-  const failedItems = items.flatMap((item) => {
-    const status = statuses[item.id];
-    return status?.state === "error" ? [{ item, status }] : [];
-  });
-
-  if (addingCount === 0 && failedItems.length === 0) return null;
-
-  return (
-    <div className="item-image-status-summary">
-      {addingCount > 0 ? (
-        <ItemImageStatusMessage
-          status={{ state: "uploading" }}
-          text={`Adding ${addingCount} ${addingCount === 1 ? "image" : "images"}`}
-        />
-      ) : null}
-      {failedItems.map(({ item, status }) => (
-        <p className="item-image-status is-error" key={item.id} role="status">
-          <span>
-            <button
-              className="text-button"
-              onClick={() => onOpenItem(item.id)}
-              type="button"
-            >
-              {item.label.trim() || "Untitled item"}
-            </button>
-            : {status.message}
-          </span>
-        </p>
-      ))}
-    </div>
   );
 }
 

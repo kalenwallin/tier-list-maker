@@ -1179,6 +1179,12 @@ button:disabled {
   backdrop-filter: blur(4px);
 }
 
+/* Lock the page behind the open item dialog. `scrollbar-gutter: stable` on
+   html keeps the layout from shifting when its scrollbar goes away. */
+html:has(.item-dialog[open]) {
+  overflow: hidden;
+}
+
 .item-dialog-card {
   display: flex;
   max-height: calc(100dvh - 32px);
@@ -1304,6 +1310,7 @@ button:disabled {
   align-items: start;
   gap: 20px;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 20px 22px;
 }
 
@@ -1868,6 +1875,56 @@ button:disabled {
   font-size: 0.82rem;
   font-weight: 700;
   text-align: center;
+}
+
+/* Beside the "Add item" tile, the hint takes the rest of the row. */
+.tile-add + .item-tray-empty {
+  width: auto;
+  flex: 1 1 140px;
+  place-items: center start;
+  text-align: left;
+}
+
+/* An empty item slot that adds an item; it keeps the size of the tiles
+   beside it, including the list's item image ratio. */
+.tile.tile-add {
+  padding: 0;
+  border-style: dashed;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease,
+    color 140ms ease;
+}
+
+.tile-add .tile-media {
+  background: none;
+  color: inherit;
+}
+
+.tile-add .tile-label {
+  border-top-style: dashed;
+  background: transparent;
+  color: inherit;
+}
+
+.tile.tile-add:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .tile.tile-add:hover {
+    border-style: solid;
+    background: var(--tile-media);
+    color: var(--control-foreground);
+  }
+
+  .tile-add:hover .tile-label {
+    border-top-style: solid;
+  }
 }
 
 .item-edge-drop-target {
@@ -2506,12 +2563,6 @@ button:disabled {
   min-width: 0;
 }
 
-.item-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
 .item-image-status {
   display: flex;
   align-items: center;
@@ -2525,21 +2576,6 @@ button:disabled {
 
 .item-image-status.is-error {
   color: var(--danger-control-foreground);
-}
-
-.item-images-hint,
-.item-editor-hint {
-  margin: 0;
-  font-size: 0.85rem;
-}
-
-.item-image-status-summary {
-  display: grid;
-  gap: 6px;
-}
-
-.item-image-status-summary .text-button {
-  font-size: inherit;
 }
 
 @media (max-width: 880px) {
