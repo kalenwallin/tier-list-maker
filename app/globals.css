@@ -1241,14 +1241,74 @@ button:disabled {
   flex: 0 0 auto;
 }
 
+.item-dialog-tier-field {
+  min-width: 0;
+  border: 0;
+  padding: 0;
+}
+
+.item-dialog-tier-field legend {
+  margin-bottom: 8px;
+  padding: 0;
+}
+
+.item-dialog-tier-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.item-dialog-tier-option {
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+  cursor: pointer;
+}
+
+.item-dialog-tier-option .item-dialog-tier {
+  display: inline-flex;
+  min-width: 40px;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 10px;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+  text-align: center;
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.item-dialog-tier-option input:checked + .item-dialog-tier {
+  box-shadow: 3px 3px 0 var(--border);
+  transform: translate(-1px, -1px);
+}
+
+.item-dialog-tier-option input:focus-visible + .item-dialog-tier {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .item-dialog-tier-option:hover input:not(:checked) + .item-dialog-tier {
+    box-shadow: 2px 2px 0 var(--border);
+  }
+}
+
 .item-dialog-body {
   display: grid;
   min-height: 0;
-  grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
   gap: 20px;
   overflow-y: auto;
   padding: 20px 22px;
+}
+
+.item-dialog-body.has-media {
+  grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
 }
 
 .item-dialog-media {
@@ -1317,7 +1377,8 @@ button:disabled {
     padding: 14px 12px 12px 18px;
   }
 
-  .item-dialog-body {
+  .item-dialog-body,
+  .item-dialog-body.has-media {
     grid-template-columns: minmax(0, 1fr);
     gap: 16px;
     padding: 18px;

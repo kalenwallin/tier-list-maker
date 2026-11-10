@@ -486,6 +486,17 @@ export function TierListEditor({
     });
   }
 
+  // Moves an item from its dialog, to the end of the tier. The dialog covers
+  // the board, so this skips the transition, which would draw the moving tile
+  // on top of the dialog.
+  function moveItemToTier(itemId: string, tierId: string | undefined) {
+    setItems((current) =>
+      current.find((item) => item.id === itemId)?.tierId === tierId
+        ? current
+        : moveItem(current, itemId, tierId),
+    );
+  }
+
   function removeItem(itemId: string) {
     itemImages.clearStatus(itemId);
     updateWithOptionalTransition(() => {
@@ -589,6 +600,8 @@ export function TierListEditor({
           onImagePaste: (event) => pasteItemImage(event, openItem.id),
           onImageUpload: (file) => void itemImages.uploadImage(openItem.id, file),
           onRemove: () => removeItem(openItem.id),
+          onTierChange: (tierId) => moveItemToTier(openItem.id, tierId),
+          tiers: previewTiers,
         }
       : undefined;
 

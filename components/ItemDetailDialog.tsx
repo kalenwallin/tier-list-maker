@@ -1,6 +1,6 @@
 "use client";
 
-import { ImageOff, ImageUp, Loader2, Trash2, X } from "lucide-react";
+import { Check, ImageOff, ImageUp, Loader2, Trash2, X } from "lucide-react";
 import { ClipboardEvent, useEffect, useId, useRef } from "react";
 import {
   getHostedItemImageKey,
@@ -33,10 +33,14 @@ export type ItemDetailEditor = {
   onImagePaste: (event: ClipboardEvent<HTMLInputElement>) => void;
   onImageUpload: (file: File) => void;
   onRemove: () => void;
+  // `undefined` moves the item to the unranked tray.
+  onTierChange: (tierId: string | undefined) => void;
+  tiers: Tier[];
 };
 
-// Shows one item's name, description, and image. Passing `editor` makes them
-// editable; without it the dialog is read-only, as in preview and shared views.
+// Shows one item's name, tier, description, and image. Passing `editor` makes
+// them editable; without it the dialog is read-only, as in preview and shared
+// views.
 export function ItemDetailDialog({
   editor,
   item,
@@ -55,6 +59,7 @@ export function ItemDetailDialog({
   const isMobilePerformanceMode = useMobilePerformanceMode();
   const isAnimated = viewTransitionsEnabled && !isMobilePerformanceMode;
   const titleId = useId();
+  const tierFieldName = useId();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -111,12 +116,14 @@ export function ItemDetailDialog({
         <div className="item-dialog-card">
           <header className="item-dialog-header">
             <div className="item-dialog-heading">
-              <span
-                className={tier ? "item-dialog-tier" : "item-dialog-tier is-unranked"}
-                style={tier ? { background: tier.color } : undefined}
-              >
-                {tier ? tier.name : "Unranked"}
-              </span>
+              {editor ? null : (
+                <span
+                  className={tier ? "item-dialog-tier" : "item-dialog-tier is-unranked"}
+                  style={tier ? { background: tier.color } : undefined}
+                >
+                  {tier ? getTierName(tier) : "Unranked"}
+                </span>
+              )}
               <h2 id={titleId}>{editor ? "Edit item" : name}</h2>
             </div>
             <button
@@ -129,13 +136,17 @@ export function ItemDetailDialog({
             </button>
           </header>
 
-          <div className="item-dialog-body">
-            <div
-              className="item-dialog-media"
-              style={{ aspectRatio: MEDIA_ASPECT_RATIOS[itemImageAspectRatio] }}
-            >
-              <ItemImage imageUrl={item.imageUrl} label={item.label} />
-            </div>
+          <div
+            className={item.imageUrl ? "item-dialog-body has-media" : "item-dialog-body"}
+          >
+            {item.imageUrl ? (
+              <div
+                className="item-dialog-media"
+                style={{ aspectRatio: MEDIA_ASPECT_RATIOS[itemImageAspectRatio] }}
+              >
+                <ItemImage imageUrl={item.imageUrl} label={item.label} />
+              </div>
+            ) : null}
 
             {editor ? (
               <div className="item-dialog-fields">
@@ -149,6 +160,33 @@ export function ItemDetailDialog({
                     value={item.label}
                   />
                 </label>
+                <fieldset className="form-row item-dialog-tier-field">
+                  <legend className="label">Tier</legend>
+                  <div className="item-dialog-tier-options">
+                    {[...editor.tiers, undefined].map((option) => (
+                      <label className="item-dialog-tier-option" key={option?.id ?? ""}>
+                        <input
+                          checked={item.tierId === option?.id}
+                          className="visually-hidden"
+                          name={tierFieldName}
+                          onChange={() => editor.onTierChange(option?.id)}
+                          type="radio"
+                        />
+                        <span
+                          className={
+                            option ? "item-dialog-tier" : "item-dialog-tier is-unranked"
+                          }
+                          style={option ? { background: option.color } : undefined}
+                        >
+                          {item.tierId === option?.id ? (
+                            <Check aria-hidden="true" size={14} strokeWidth={3} />
+                          ) : null}
+                          {option ? getTierName(option) : "Unranked"}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
                 <label className="form-row">
                   <span className="label">Description</span>
                   <textarea
@@ -275,6 +313,10 @@ export function ItemImageStatusMessage({
             : "Saving a copy of the linked image")}
     </p>
   );
+}
+
+function getTierName(tier: Tier) {
+  return tier.name.trim() || "Untitled tier";
 }
 
 // Uploaded images are stored under an internal path rather than a link worth
